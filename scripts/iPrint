@@ -1,0 +1,296 @@
+#!/bin/bash
+#############################################################
+# Name:        Supportconfig Plugin for iPrint
+# Description: Gathers iPrint troubleshooting information
+# License:     GPLv2
+# Authors/Contributors:
+#              Jeremy Meldrum (jmeldrum@novell.com)
+#              Jason Record (jrecord@novell.com)
+#                (Initial supportconfig plugin port)
+# Modified:    2010 Sep 20
+#############################################################
+
+SVER=1.5.0-4
+RCFILE="/opt/supportconfig/resources/scplugin.rc"
+PGCONF="/etc/opt/novell/iprint-plugin/iprint-plugin.conf"
+LOG_LINES=500	#0 means include the entire file
+
+[ -s $RCFILE ] && . $RCFILE || { echo "ERROR: Initializing resource file: $RCFILE"; exit 1; }
+[ -s $PGCONF ] && . $PGCONF || { echo "ERROR: Initializing configuration file: $PGCONF"; exit 2; }
+
+section_header "Supportconfig Plugin for iPrint, v${SVER}"
+
+declare -a rpmArray
+declare -a fileArray
+declare -a staticArray
+declare -a psmArray
+declare -a grepArray
+errorFlag="1"
+tempVar=""
+managerName=""
+ldapFQN=""
+
+#Stores the server DNS or IP address variables
+iprint_ssl_URL=""
+ipsmd_conf_dsserver1=""
+nam_conf_server=""
+
+
+###################################################
+PackageValidation ()
+{
+	section_header "************* Section #1 RPM Validation *************"
+	for i in $rpmArray; do
+		validate_rpm $i
+	done
+}
+###################################################
+ListRights ()
+{
+	section_header "************* Section #2 Rights Listings *************"
+	for i in $rpmArray; do
+		plugin_command "rpm -ql $i | xargs -d '\n' ls -ld"
+	done
+}
+###################################################
+#This function lists the rights of directories specific to iprint.
+ListRightsStatic ()
+{
+	section_header "************* Section #3 Static Directories *************"
+	pathsToList="/var/opt/novell/iprint/ /etc/opt/novell/iprint/conf/ /var/opt/novell/run/iprint/ /opt/novell/iprint/bin/ /etc/opt/novell/iprint/httpd/conf/ "
+	for pathVar in $pathsToList
+	do
+		plugin_command "ls -al $pathVar"
+	done
+
+	pathsToList="/var/opt/novell/iprint/mod_ipp/ /var/opt/novell/iprint/htdocs/"	
+	for pathVar in $pathsToList
+	do
+		plugin_command "ls -Rl $pathVar"
+	done
+
+	pathsToList="/var/opt/novell/log/iprint/ /var/opt/novell/iprint/resdir/ "	
+	for pathVar in $pathsToList
+	do
+		plugin_command "ls -alh $pathVar"
+	done
+
+	plugin_command "ls -al /var/opt/novell/iprint/*.psm"
+	
+	pathsToList="driver_mac-os-x_noarch_en driver_windows-95_x86-32_en driver_windows-nt-4_x86-32_en driver_windows-nt-5.1_x86-32_en driver_windows-nt-5_x86-32_en driver_windows-nt-6_x86-32_en driver_windows-nt-6_x86-64_en"
+	for pathVar in $pathsToList
+	do
+		if [ -d /var/opt/novell/iprint/resdir/${pathVar} ]; then
+			plugin_command "ls -al /var/opt/novell/iprint/resdir/${pathVar}"
+		fi
+	done
+
+	
+	#NSS Rights listing
+	if [ -h "/var/opt/novell/iprint" ]; then
+		plugin_command "rights show -f /var/opt/novell/log/iprint"
+		plugin_command "rights show -f /var/opt/novell/iprint"
+	fi
+
+}
+
+###################################################
+FileOutput ()
+{
+	section_header "************* Section #4 File Output *************"
+	plugin_command "sed -e '/^IDSObjectPasswd/d' /etc/opt/novell/iprint/conf/idsd.conf"
+	plugin_command "sed -e '/^PSMObjectPasswd/d' /etc/opt/novell/iprint/conf/ipsmd.conf"
+	pconf_files "/etc/opt/novell/iprint/httpd/conf/iprint_g.conf /etc/opt/novell/iprint/httpd/conf/iprint_ssl.conf /var/opt/novell/iprint/htdocs/iprint.ini"
+
+	SCRIPTS=""
+	for NCS_CHK_DIR in /var/run/ncs /var/opt/novell/log/ncs /etc/opt/novell/ncs /var/opt/novell/ncs
+	do
+		if [ -d $NCS_CHK_DIR ]; then
+			SCRIPTS="$SCRIPTS $(find ${NCS_CHK_DIR}/ -type f -name \*load | grep -v '_Template' | sort)"
+		fi
+	done
+	pconf_files $SCRIPTS
+	pconf_files "/etc/nam.conf /etc/novell-release /etc/SuSE-release /etc/hosts /etc/passwd /etc/group /etc/openwbem/openwbem.conf /etc/apache2/httpd.conf /etc/sysconfig/apache2 /etc/sysconfig/proxy /etc/permissions.d/iprint"
+}
+
+###################################################
+ndsOutput ()
+{
+
+	section_header "************* Section #5 eDirectory and Cert Information *************"
+	plugin_command "ndsstat -r"
+	plugin_command "ndsrepair -T"
+	plugin_command "ndsrepair -E"
+	plugin_message "#==[ Command ]======================================#"
+	plugin_message "# ldapconfig get -p localhost -a $EDIR_USERNAME -w *********"
+	ldapconfig get -p localhost -a $EDIR_USERNAME -w $EDIR_PASSWORD
+	plugin_message 
+
+	plugin_message "#==[ Command ]======================================#"
+	plugin_message "# ldapconfig get -p $iprint_ssl_URL -a $EDIR_USERNAME -w *********"
+	ldapconfig get -p $iprint_ssl_URL -a $EDIR_USERNAME -w $EDIR_PASSWORD
+	plugin_message 
+
+	plugin_message "#==[ Command ]======================================#"
+	plugin_message "# ldapconfig get -p $nam_conf_server -a $EDIR_USERNAME -w *********"
+	ldapconfig get -p $nam_conf_server -a $EDIR_USERNAME -w $EDIR_PASSWORD
+	plugin_message 
+
+	#Doing an ldapsearch and bind using SSCert.pem
+	plugin_message "#==[ Command ]======================================#"
+	plugin_message "# /opt/novell/eDirectory/bin/ldapsearch -h $iprint_ssl_URL -p 636 -D $ldapFQN -w ********* -b \"\" -s base -e /etc/opt/novell/certs/SSCert.der \"objectclass=*\""
+	/opt/novell/eDirectory/bin/ldapsearch -h $iprint_ssl_URL -p 636 -D $ldapFQN -w $EDIR_PASSWORD -b "" -s base -e /etc/opt/novell/certs/SSCert.der "objectclass=*"
+	returnCode=$?
+	plugin_message 
+	if [ $returnCode -gt 0 ]; then
+		plugin_message "Secure LDAP connection FAILED over port 636 using SSCert.der"
+	else
+		plugin_message "Secure LDAP connection was successful over port 636 using SSCert.der"
+	fi
+	plugin_message 
+
+	pathsToList="/etc/opt/novell/certs/ /etc/ssl/servercerts/"
+	for pathVar in $pathsToList
+	do
+		plugin_command "ls -al $pathVar"
+	done
+
+	CERTS="/etc/opt/novell/certs/SSCert.der /etc/opt/novell/certs/SSCert.pem /etc/ssl/servercerts/servercert.pem"
+	for certFile in $CERTS
+	do
+		if certtool -i --inder --infile $certFile &>/dev/null; then
+			plugin_command "certtool -i --inder --infile $certFile | sed '/Subject:/,/modulus:/!d'"
+		else
+			plugin_command "certtool -i --inder --infile $certFile"
+		fi
+	done
+
+	#Checks the connection to the SSCert.pem file through openssl
+	plugin_command "echo -n | SSL_CERT=/no_dir openssl s_client -connect localhost:636 -CAfile /etc/opt/novell/certs/SSCert.pem -verify 255 | sed '/-----BEGIN CERTIFICATE-----/,/-----END CERTIFICATE-----/d'"
+}
+
+###################################################
+MiscCommands ()
+{
+	section_header "************* Section #6 Miscellaneous Commands *************"
+	plugin_command "ps -eaf | egrep 'iprint|owcimomd'"
+	plugin_command "rcowcimomd status"
+	plugin_command "uname -a"
+	plugin_command "uptime"
+	plugin_command "ifconfig | grep 'inet addr' | sed 's/^[ \t]*//'"
+
+	eName=`echo $EDIR_USERNAME | cut -d. -f1` 
+	#echo $eName
+	if [ -n "$eName" ]; then
+		if [ $eName == "admin" ]; then
+			plugin_command "id $eName"
+		else		
+			plugin_command "id admin"
+			plugin_command "id $eName"
+		fi
+	else
+		plugin_command "id admin"
+	fi
+	plugin_command "id wwwrun"
+	plugin_command "id iprint"
+	plugin_command "netstat -atnp | grep 631"	
+	plugin_command "netcat -zv $iprint_ssl_URL 636 #from iprint_ssl.conf"
+	plugin_command "netcat -zv $nam_conf_server 636 #from nam.conf"
+	plugin_command "netcat -zv $ipsmd_conf_dsserver1 636 #from ipsmd.conf"
+	plugin_command "netcat -zv $ipsmd_conf_dsserver1 5989 #from ipsmd.conf"
+	plugin_command "netcat -zv $nam_conf_server 5989 #from nam.conf"
+	plugin_command "rcSuSEfirewall2 status"
+	plugin_command "df -h"
+	plugin_command "mount | grep nssvol"
+	plugin_command "getent passwd | grep wwwrun"
+	plugin_command "getent group | grep www"
+	plugin_command "ps -eo pcpu,pid,user,args | sort -k 1 -r | head -10 | grep -e iPrintInfo --invert-match"
+	plugin_command "iostat"
+
+	if [ -n "$EDIR_SEARCH_BASE" ]; then
+		plugin_command "namuserlist -x $EDIR_SEARCH_BASE"
+		plugin_command "namgrouplist -x $EDIR_SEARCH_BASE"
+	fi
+
+}
+
+###################################################
+LogOutput ()
+{
+	section_header "************* Section #7 Log Output Files *************"
+	managerName=` ls -al /etc/opt/novell/iprint/conf/ipsmd.conf | cut -d/ -f13 | sed 's/.ipsmd.conf//'`
+	logFiles="/var/opt/novell/log/iprint/idsd.log /var/opt/novell/log/iprint/ipsmd.log /var/opt/novell/log/iprint/ipsmprov.log /var/opt/novell/log/iprint/iprintgw.log /var/opt/novell/iprint/$managerName.psm/ndpsmmon.log /var/log/messages"
+	plog_files $LOG_LINES $logFiles
+	plog_files $LOG_LINES "/var/log/apache2/error_log"
+	plog_files $LOG_LINES "/var/log/apache2/access_log /var/lib/novell-lum/nam.log"
+	plog_files $LOG_LINES "/var/opt/novell/log/iprint_nss_relocate.log"
+}
+
+###################################################
+getPSM ()
+{
+	#This command list the dynamically created print managers and dispalys the xml file.
+	psmArray=`ls -d /var/opt/novell/iprint/*.psm/padbtxt.xml 2>/dev/null`
+	pconf_files $psmArray
+}
+###################################################
+printArray ()
+{ 
+	printf "\n   ============== $1 ==============\n"
+}
+###################################################
+QueryRPMs ()
+{
+	#Enters all of the installed iprint rpms into an array for use in another function.
+	rpmArray=`rpm -qa | grep iprint | sort -d`	
+}
+###################################################
+setVariables ()
+{
+
+	# This gives us the ldaps URL servers DNS or IP address from the iprint_ssl.conf
+	iprint_ssl_URL=`grep -i AuthLDAPDNURL /etc/opt/novell/iprint/httpd/conf/iprint_ssl.conf | cut -d/ -f3 | cut -d: -f1`
+	
+	#This gives us the preferred server's DNS or IP address from the nam.conf
+	nam_conf_server=`grep -i preferred-server /etc/nam.conf | cut -d= -f2`
+	
+	#This gives us the Dsserver1 DNS or IP address from the ipsmd.conf
+	ipsmd_conf_dsserver1=` grep -i DSServer1 /etc/opt/novell/iprint/conf/ipsmd.conf | tr -s ' ' | cut -d" " -f2`
+	
+	#gets the ldap formated context of a user.	
+	tmplength=$(echo $EDIR_USERNAME | tr -dc '.' | wc -c )
+	context_length=`expr $tmplength + 1`	
+	cName=$(echo $EDIR_USERNAME | cut -d. -f1 )
+	orgName=$(echo $EDIR_USERNAME | cut -d. -f$context_length )
+	
+	#concatenates  the FQN together		
+	if [ $tmplength = "1" ]; then 	    
+	    ldapFQN="cn=${cName},o=${orgName}"
+	else
+        ouName=$(echo $EDIR_USERNAME | cut -d. -f2-$tmplength | sed 's/\./,ou\=/g')		    
+        ldapFQN="cn=${cName},ou=${ouName},o=${orgName}" 	    
+	fi	
+	#echo "ldapFQN: $ldapFQN"	
+
+}
+###################################################
+execCalls ()
+{
+	#Executes each of the functions
+	QueryRPMs
+	PackageValidation
+	ListRights
+	ListRightsStatic
+	setVariables
+	FileOutput
+	ndsOutput
+	MiscCommands
+	getPSM
+	LogOutput
+}
+###################################################
+
+	
+execCalls
+
+
