@@ -7,10 +7,10 @@
 #              Jeremy Meldrum (jmeldrum@novell.com)
 #              Jason Record (jrecord@novell.com)
 #                (Initial supportconfig plugin port)
-# Modified:    2010 Sep 20
+# Modified:    2010 Sep 22
 #############################################################
 
-SVER=1.5.0-4
+SVER=1.5.0-7
 RCFILE="/opt/supportconfig/resources/scplugin.rc"
 PGCONF="/etc/opt/novell/iprint-plugin/iprint-plugin.conf"
 LOG_LINES=500	#0 means include the entire file
@@ -20,6 +20,12 @@ LOG_LINES=500	#0 means include the entire file
 
 section_header "Supportconfig Plugin for iPrint, v${SVER}"
 
+if [ -z "$EDIR_USERNAME" ]; then
+	plugin_message "#==[ Warning ]======================================#"
+	plugin_message "# Missing eDirectory User, run iprint-plugin-config"
+	plugin_message
+fi
+
 declare -a rpmArray
 declare -a fileArray
 declare -a staticArray
@@ -28,7 +34,6 @@ declare -a grepArray
 errorFlag="1"
 tempVar=""
 managerName=""
-ldapFQN=""
 
 #Stores the server DNS or IP address variables
 iprint_ssl_URL=""
@@ -121,25 +126,27 @@ ndsOutput ()
 	plugin_command "ndsstat -r"
 	plugin_command "ndsrepair -T"
 	plugin_command "ndsrepair -E"
-	plugin_message "#==[ Command ]======================================#"
-	plugin_message "# ldapconfig get -p localhost -a $EDIR_USERNAME -w *********"
-	ldapconfig get -p localhost -a $EDIR_USERNAME -w $EDIR_PASSWORD
-	plugin_message 
+	if [ -z "$EDIR_USERNAME" ]; then
+		plugin_message "#==[ Command ]======================================#"
+		plugin_message "# ldapconfig get -p localhost -a $EDIR_USERNAME -w *********"
+		ldapconfig get -p localhost -a $EDIR_USERNAME -w $EDIR_PASSWORD
+		plugin_message 
 
-	plugin_message "#==[ Command ]======================================#"
-	plugin_message "# ldapconfig get -p $iprint_ssl_URL -a $EDIR_USERNAME -w *********"
-	ldapconfig get -p $iprint_ssl_URL -a $EDIR_USERNAME -w $EDIR_PASSWORD
-	plugin_message 
+		plugin_message "#==[ Command ]======================================#"
+		plugin_message "# ldapconfig get -p $iprint_ssl_URL -a $EDIR_USERNAME -w *********"
+		ldapconfig get -p $iprint_ssl_URL -a $EDIR_USERNAME -w $EDIR_PASSWORD
+		plugin_message 
 
-	plugin_message "#==[ Command ]======================================#"
-	plugin_message "# ldapconfig get -p $nam_conf_server -a $EDIR_USERNAME -w *********"
-	ldapconfig get -p $nam_conf_server -a $EDIR_USERNAME -w $EDIR_PASSWORD
-	plugin_message 
+		plugin_message "#==[ Command ]======================================#"
+		plugin_message "# ldapconfig get -p $nam_conf_server -a $EDIR_USERNAME -w *********"
+		ldapconfig get -p $nam_conf_server -a $EDIR_USERNAME -w $EDIR_PASSWORD
+		plugin_message 
+	fi
 
 	#Doing an ldapsearch and bind using SSCert.pem
 	plugin_message "#==[ Command ]======================================#"
-	plugin_message "# /opt/novell/eDirectory/bin/ldapsearch -h $iprint_ssl_URL -p 636 -D $ldapFQN -w ********* -b \"\" -s base -e /etc/opt/novell/certs/SSCert.der \"objectclass=*\""
-	/opt/novell/eDirectory/bin/ldapsearch -h $iprint_ssl_URL -p 636 -D $ldapFQN -w $EDIR_PASSWORD -b "" -s base -e /etc/opt/novell/certs/SSCert.der "objectclass=*"
+	plugin_message "# /opt/novell/eDirectory/bin/ldapsearch -h $iprint_ssl_URL -p 636 -D $EDIR_LDAP_FQN -w ********* -b \"\" -s base -e /etc/opt/novell/certs/SSCert.der \"objectclass=*\""
+	/opt/novell/eDirectory/bin/ldapsearch -h $iprint_ssl_URL -p 636 -D $EDIR_LDAP_FQN -w $EDIR_PASSWORD -b "" -s base -e /etc/opt/novell/certs/SSCert.der "objectclass=*"
 	returnCode=$?
 	plugin_message 
 	if [ $returnCode -gt 0 ]; then
@@ -256,22 +263,6 @@ setVariables ()
 	
 	#This gives us the Dsserver1 DNS or IP address from the ipsmd.conf
 	ipsmd_conf_dsserver1=` grep -i DSServer1 /etc/opt/novell/iprint/conf/ipsmd.conf | tr -s ' ' | cut -d" " -f2`
-	
-	#gets the ldap formated context of a user.	
-	tmplength=$(echo $EDIR_USERNAME | tr -dc '.' | wc -c )
-	context_length=`expr $tmplength + 1`	
-	cName=$(echo $EDIR_USERNAME | cut -d. -f1 )
-	orgName=$(echo $EDIR_USERNAME | cut -d. -f$context_length )
-	
-	#concatenates  the FQN together		
-	if [ $tmplength = "1" ]; then 	    
-	    ldapFQN="cn=${cName},o=${orgName}"
-	else
-        ouName=$(echo $EDIR_USERNAME | cut -d. -f2-$tmplength | sed 's/\./,ou\=/g')		    
-        ldapFQN="cn=${cName},ou=${ouName},o=${orgName}" 	    
-	fi	
-	#echo "ldapFQN: $ldapFQN"	
-
 }
 ###################################################
 execCalls ()
