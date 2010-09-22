@@ -92,7 +92,17 @@ gatherInfo ()
 #################################################################
 clear
 title
-[ -s $CONF_FILE ] && . $CONF_FILE
+
+CURRENTUID=$(id -u)
+if [ $CURRENTUID -ne 0 ]; then
+	echo "ERROR: You must be logged in as root."
+	echo "       $(id)"
+	echo
+	exit 3
+fi
+
+
+[ -s $PGCONF ] && . $PGCONF
 while getopts :bhPpr: TMPOPT
 do
 	case $TMPOPT in
