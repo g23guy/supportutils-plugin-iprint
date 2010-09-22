@@ -2,7 +2,7 @@
 
 clear
 RCODE=1
-SVER=0.0.2
+SVER=0.0.4
 CONF_DIR="/etc/opt/novell/iprint-plugin"
 CONF_FILE="iprint-plugin.conf"
 
@@ -30,11 +30,15 @@ do
 		echo "ERROR: The $EDIR_USERNAME and password don't match, please try again."
 		echo
 	else
+		EDIR_LDAP_FQN=$(ndslogin -p novell admin.novell | grep "eDirectory Login" | awk '{print $NF}' | sed -e 's/^\.//;s/\.$//;s/\./,/g')
+		EDIR_TREE=$(echo $EDIR_LDAP_FQN | awk -F, '{print $NF}')
+		EDIR_LDAP_FQN=$(echo $EDIR_LDAP_FQN | sed -e "s/,$EDIR_TREE//")
 		mkdir -p $CONF_DIR
 		chmod 0700 $CONF_DIR
 		echo "EDIR_USERNAME=\"${EDIR_USERNAME}\"" > $CONF_DIR/$CONF_FILE
 		echo "EDIR_PASSWORD=\"${EDIR_PASSWORD}\"" >> $CONF_DIR/$CONF_FILE
 		echo "EDIR_SEARCH_BASE=\"${EDIR_SEARCH_BASE}\"" >> $CONF_DIR/$CONF_FILE
+		echo "EDIR_LDAP_FQN=\"${EDIR_LDAP_FQN}\"" >> $CONF_DIR/$CONF_FILE
 		chmod 0600 $CONF_DIR/$CONF_FILE
 		chown -R root.root $CONF_DIR
 		echo "Supportconfig Plugin for iPrint Configured"
