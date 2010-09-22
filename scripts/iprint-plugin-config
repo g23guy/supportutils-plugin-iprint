@@ -10,6 +10,13 @@ echo "#####################################################"
 echo "#        Supportconfig Plugin for iPrint"
 echo "#         Configuration Tool v${SVER}"
 echo "#####################################################"
+if [ "$1" == "-p" ]; then
+	echo "Credential Mode: Persistent"
+	AUTH_PERSISTENT="true"
+else
+	echo "Credential Mode: Single Use"
+	AUTH_PERSISTENT="false"
+fi
 echo
 
 printf "Enter optional LDAP search base: "
@@ -38,6 +45,7 @@ do
 		echo "EDIR_PASSWORD=\"${EDIR_PASSWORD}\"" >> $CONF_FILE
 		echo "EDIR_SEARCH_BASE=\"${EDIR_SEARCH_BASE}\"" >> $CONF_FILE
 		echo "EDIR_LDAP_FQN=\"${EDIR_LDAP_FQN}\"" >> $CONF_FILE
+		echo "AUTH_PERSISTENT=\"$AUT_PERSISTENT\"" >> $CONF_FILE
 		chmod 0700 $CONF_DIR
 		chmod 0600 $CONF_FILE
 		chown -R root.root $CONF_DIR
