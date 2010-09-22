@@ -5,6 +5,7 @@ RCODE=1
 SVER=1.0.0
 CONF_DIR="/etc/opt/novell/iprint-plugin"
 CONF_FILE="${CONF_DIR}/iprint-plugin.conf"
+AUTH_PERSISTENT="false"
 
 echo "#####################################################"
 echo "#        Supportconfig Plugin for iPrint"
