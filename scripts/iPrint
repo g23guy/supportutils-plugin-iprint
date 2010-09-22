@@ -143,18 +143,20 @@ ndsOutput ()
 		plugin_message 
 	fi
 
-	#Doing an ldapsearch and bind using SSCert.pem
-	plugin_message "#==[ Command ]======================================#"
-	plugin_message "# /opt/novell/eDirectory/bin/ldapsearch -h $iprint_ssl_URL -p 636 -D $EDIR_LDAP_FQN -w ********* -b \"\" -s base -e /etc/opt/novell/certs/SSCert.der \"objectclass=*\""
-	/opt/novell/eDirectory/bin/ldapsearch -h $iprint_ssl_URL -p 636 -D $EDIR_LDAP_FQN -w $EDIR_PASSWORD -b "" -s base -e /etc/opt/novell/certs/SSCert.der "objectclass=*"
-	returnCode=$?
-	plugin_message 
-	if [ $returnCode -gt 0 ]; then
-		plugin_message "Secure LDAP connection FAILED over port 636 using SSCert.der"
-	else
-		plugin_message "Secure LDAP connection was successful over port 636 using SSCert.der"
+	if [ -z "$EDIR_LDAP_FQN" ]; then
+		#Doing an ldapsearch and bind using SSCert.pem
+		plugin_message "#==[ Command ]======================================#"
+		plugin_message "# /opt/novell/eDirectory/bin/ldapsearch -h $iprint_ssl_URL -p 636 -D $EDIR_LDAP_FQN -w ********* -b \"\" -s base -e /etc/opt/novell/certs/SSCert.der \"objectclass=*\""
+		/opt/novell/eDirectory/bin/ldapsearch -h $iprint_ssl_URL -p 636 -D $EDIR_LDAP_FQN -w $EDIR_PASSWORD -b "" -s base -e /etc/opt/novell/certs/SSCert.der "objectclass=*"
+		returnCode=$?
+		plugin_message 
+		if [ $returnCode -gt 0 ]; then
+			plugin_message "Secure LDAP connection FAILED over port 636 using SSCert.der"
+		else
+			plugin_message "Secure LDAP connection was successful over port 636 using SSCert.der"
+		fi
+		plugin_message 
 	fi
-	plugin_message 
 
 	pathsToList="/etc/opt/novell/certs/ /etc/ssl/servercerts/"
 	for pathVar in $pathsToList
