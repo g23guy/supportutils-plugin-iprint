@@ -10,7 +10,7 @@
 # Modified:    2010 Sep 22
 #############################################################
 
-SVER=1.5.0-9
+SVER=1.5.0-10
 RCFILE="/opt/supportconfig/resources/scplugin.rc"
 PGCONF="/etc/opt/novell/iprint-plugin/iprint-plugin.conf"
 LOG_LINES=500	#0 means include the entire file
@@ -21,8 +21,8 @@ LOG_LINES=500	#0 means include the entire file
 section_header "Supportconfig Plugin for iPrint, v${SVER}"
 
 if [ -z "$EDIR_USERNAME" ]; then
-	plugin_message "#==[ Warning ]======================================#"
-	plugin_message "# Missing eDirectory User, run iprint-plugin-config"
+	plugin_message "#==[ WARNING ]======================================#"
+	plugin_message "# Run iprint-plugin-config for additional information"
 	plugin_message
 fi
 
