@@ -2,55 +2,118 @@
 
 clear
 RCODE=1
-SVER=1.0.0
+SVER=1.5.0
 CONF_DIR="/etc/opt/novell/iprint-plugin"
 CONF_FILE="${CONF_DIR}/iprint-plugin.conf"
-AUTH_PERSISTENT="false"
+OPT_AUTH_PERSISTENT=0
+BACKLINE_MODE=0
+SRNUM=0
+CURRENT_SCRIPT=$(basename $0)
 
-echo "#####################################################"
-echo "#        Supportconfig Plugin for iPrint"
-echo "#         Configuration Tool v${SVER}"
-echo "#####################################################"
-if [ "$1" == "-p" ]; then
-	echo "Credential Mode: Persistent"
-	AUTH_PERSISTENT="true"
-else
-	echo "Credential Mode: Single Use"
-	AUTH_PERSISTENT="false"
-fi
-echo
+title ()
+{
+	echo "#####################################################"
+	echo "#        Supportconfig Plugin for iPrint"
+	echo "#       Information Gathering Tool v${SVER}"
+	echo "#####################################################"
+}
 
-printf "Enter optional LDAP search base: "
-read EDIR_SEARCH_BASE
-echo
-while [ $RCODE -gt 0 ]
-do
-	printf "Enter your FQN in dot notation (ie admin.novell): "
-	read EDIR_USERNAME
+show_help() 
+{
+	echo "Usage: $CURRENT_SCRIPT [-pb][-r SR_Number]"
+	echo " -P   Set persistent eDirectory credentials"
+	echo " -p   Clear previously set persistent eDirectory credentials"
+	echo " -b   Use backline mode"
+	echo " -r <srnum> Supply your current SR number"
 	echo
-	printf "Enter the $EDIR_USERNAME Password: "
-	read -s EDIR_PASSWORD
-	echo
-	ndslogin -p $EDIR_PASSWORD $EDIR_USERNAME
-	RCODE=$?
-	echo
-	if [ $RCODE -gt 0 ]; then
-		echo "ERROR: The $EDIR_USERNAME and password don't match, please try again."
-		echo
-	else
-		EDIR_LDAP_FQN=$(ndslogin -p novell admin.novell | grep "eDirectory Login" | awk '{print $NF}' | sed -e 's/^\.//;s/\.$//;s/\./,/g')
-		EDIR_TREE=$(echo $EDIR_LDAP_FQN | awk -F, '{print $NF}')
-		EDIR_LDAP_FQN=$(echo $EDIR_LDAP_FQN | sed -e "s/,$EDIR_TREE//")
-		mkdir -p $CONF_DIR
-		echo "EDIR_USERNAME=\"${EDIR_USERNAME}\"" > $CONF_FILE
-		echo "EDIR_PASSWORD=\"${EDIR_PASSWORD}\"" >> $CONF_FILE
-		echo "EDIR_SEARCH_BASE=\"${EDIR_SEARCH_BASE}\"" >> $CONF_FILE
-		echo "EDIR_LDAP_FQN=\"${EDIR_LDAP_FQN}\"" >> $CONF_FILE
-		echo "AUTH_PERSISTENT=\"$AUT_PERSISTENT\"" >> $CONF_FILE
-		chmod 0700 $CONF_DIR
-		chmod 0600 $CONF_FILE
-		chown -R root.root $CONF_DIR
-		echo "Supportconfig Plugin for iPrint Configured"
+}
+
+getCredentials ()
+}
+	if (( $OPT_AUTH_PERSISTENT )); then
+		AUTH_PERSISTENT="true"
 	fi
-done
+	printf "Enter optional LDAP search base: "
+	read EDIR_SEARCH_BASE
+	echo
+	while [ $RCODE -gt 0 ]
+	do
+		printf "Enter your FQN in dot notation (ie admin.novell): "
+		read EDIR_USERNAME
+		echo
+		printf "Enter the $EDIR_USERNAME Password: "
+		read -s EDIR_PASSWORD
+		echo
+		ndslogin -p $EDIR_PASSWORD $EDIR_USERNAME
+		RCODE=$?
+		echo
+		if [ $RCODE -gt 0 ]; then
+			echo "ERROR: The $EDIR_USERNAME and password don't match, please try again."
+			echo
+		else
+			EDIR_LDAP_FQN=$(ndslogin -p novell admin.novell | grep "eDirectory Login" | awk '{print $NF}' | sed -e 's/^\.//;s/\.$//;s/\./,/g')
+			EDIR_TREE=$(echo $EDIR_LDAP_FQN | awk -F, '{print $NF}')
+			EDIR_LDAP_FQN=$(echo $EDIR_LDAP_FQN | sed -e "s/,$EDIR_TREE//")
+			mkdir -p $CONF_DIR
+			echo "EDIR_USERNAME=\"${EDIR_USERNAME}\"" > $CONF_FILE
+			echo "EDIR_PASSWORD=\"${EDIR_PASSWORD}\"" >> $CONF_FILE
+			echo "EDIR_SEARCH_BASE=\"${EDIR_SEARCH_BASE}\"" >> $CONF_FILE
+			echo "EDIR_LDAP_FQN=\"${EDIR_LDAP_FQN}\"" >> $CONF_FILE
+			echo "AUTH_PERSISTENT=\"$AUTH_PERSISTENT\"" >> $CONF_FILE
+			chmod 0700 $CONF_DIR
+			chmod 0600 $CONF_FILE
+			chown -R root.root $CONF_DIR
+			echo "Supportconfig Plugin for iPrint Configured"
+		fi
+	done
 echo
+}
+
+gatherInfo ()
+{
+	if [ $BACKLINE_MODE -eq 1 ]; then
+		BACKLINE_FILE="${CURRENT_SCRIPT}-${SVER}.txt"
+		/opt/supportconfig/plugins/iPrint &> $BACKLINE_FILE
+	else
+		if [ $SRNUM -gt 0 ]; then
+			supportconfig -r $SRNUM
+		else
+			supportconfig
+		fi
+	fi
+}
+
+#################################################################
+# main
+#################################################################
+clear
+title
+[ -s $PGCONF ] && . $PGCONF
+while getopts :bhPpr: TMPOPT
+do
+	case $TMPOPT in
+	\:)	case $OPTARG in
+			*) echo "ERROR: Missing Argument -$OPTARG"
+				;;
+			esac
+			echo; show_help; exit 1 ;;
+	\?)	case $OPTARG in
+			*) echo "ERROR: Invalid Option -$OPTARG"
+				;;
+			esac
+			echo; show_help; exit 2 ;;
+	h) show_help; exit 0 ;;
+	r) SRNUM="$OPTARG" ;;
+	P) OPT_AUTH_PERSISTENT=1 ;;
+	p) AUTH_PERSISTENT="false" ;;
+	b) BACKLINE_MODE=1 ;;
+	esac
+done
+
+if [ "$AUTH_PERSISTENT" = "true" ]; then
+	gatherInfo
+else
+	getCredentials
+	gatherInfo
+fi
+
