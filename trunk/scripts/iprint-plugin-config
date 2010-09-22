@@ -1,0 +1,43 @@
+#!/bin/bash
+
+clear
+RCODE=1
+SVER=0.0.2
+CONF_DIR="/etc/opt/novell/iprint-plugin"
+CONF_FILE="iprint-plugin.conf"
+
+echo "#####################################################"
+echo "#        Supportconfig Plugin for iPrint"
+echo "#         Configuration Tool v${SVER}"
+echo "#####################################################"
+echo
+
+printf "Enter optional LDAP search base: "
+read EDIR_SEARCH_BASE
+echo
+while [ $RCODE -gt 0 ]
+do
+	printf "Enter your FQN in dot notation (ie admin.novell): "
+	read EDIR_USERNAME
+	echo
+	printf "Enter the $EDIR_USERNAME Password: "
+	read -s EDIR_PASSWORD
+	echo
+	ndslogin -p $EDIR_PASSWORD $EDIR_USERNAME
+	RCODE=$?
+	echo
+	if [ $RCODE -gt 0 ]; then
+		echo "ERROR: The $EDIR_USERNAME and password don't match, please try again."
+		echo
+	else
+		mkdir -p $CONF_DIR
+		chmod 0700 $CONF_DIR
+		echo "EDIR_USERNAME=\"${EDIR_USERNAME}\"" > $CONF_DIR/$CONF_FILE
+		echo "EDIR_PASSWORD=\"${EDIR_PASSWORD}\"" >> $CONF_DIR/$CONF_FILE
+		echo "EDIR_SEARCH_BASE=\"${EDIR_SEARCH_BASE}\"" >> $CONF_DIR/$CONF_FILE
+		chmod 0600 $CONF_DIR/$CONF_FILE
+		chown -R root.root $CONF_DIR
+		echo "Supportconfig Plugin for iPrint Configured"
+	fi
+done
+echo
