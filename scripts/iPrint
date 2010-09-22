@@ -10,7 +10,7 @@
 # Modified:    2010 Sep 22
 #############################################################
 
-SVER=1.5.0-10
+SVER=1.9.0
 RCFILE="/opt/supportconfig/resources/scplugin.rc"
 PGCONF="/etc/opt/novell/iprint-plugin/iprint-plugin.conf"
 LOG_LINES=500	#0 means include the entire file
@@ -245,9 +245,7 @@ LogOutput ()
 
 checkPersistentCredentials ()
 {
-	case $AUTH_PERSISENT in
-	1|true|True|TRUE) : ;;
-	*)
+	if [ "$AUTH_PERSISTENT" != "true" ]; then
 cat <<PGCONF_EOF > $PGCONF
 EDIR_USERNAME=""
 EDIR_PASSWORD=""
@@ -255,8 +253,7 @@ EDIR_SEARCH_BASE=""
 EDIR_LDAP_FQN=""
 AUTH_PERSISTENT="false"
 PGCONF_EOF
-	;;
-	esac
+	fi
 }
 
 ###################################################
