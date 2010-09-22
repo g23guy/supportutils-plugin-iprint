@@ -2,7 +2,7 @@
 
 clear
 RCODE=1
-SVER=1.5.1
+SVER=1.5.2
 CONF_DIR="/etc/opt/novell/iprint-plugin"
 CONF_FILE="${CONF_DIR}/iprint-plugin.conf"
 OPT_AUTH_PERSISTENT=0
