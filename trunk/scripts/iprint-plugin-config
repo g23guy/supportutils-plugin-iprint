@@ -2,9 +2,9 @@
 
 clear
 RCODE=1
-SVER=0.0.4
+SVER=1.0.0
 CONF_DIR="/etc/opt/novell/iprint-plugin"
-CONF_FILE="iprint-plugin.conf"
+CONF_FILE="${CONF_DIR}/iprint-plugin.conf"
 
 echo "#####################################################"
 echo "#        Supportconfig Plugin for iPrint"
@@ -34,12 +34,12 @@ do
 		EDIR_TREE=$(echo $EDIR_LDAP_FQN | awk -F, '{print $NF}')
 		EDIR_LDAP_FQN=$(echo $EDIR_LDAP_FQN | sed -e "s/,$EDIR_TREE//")
 		mkdir -p $CONF_DIR
+		echo "EDIR_USERNAME=\"${EDIR_USERNAME}\"" > $CONF_FILE
+		echo "EDIR_PASSWORD=\"${EDIR_PASSWORD}\"" >> $CONF_FILE
+		echo "EDIR_SEARCH_BASE=\"${EDIR_SEARCH_BASE}\"" >> $CONF_FILE
+		echo "EDIR_LDAP_FQN=\"${EDIR_LDAP_FQN}\"" >> $CONF_FILE
 		chmod 0700 $CONF_DIR
-		echo "EDIR_USERNAME=\"${EDIR_USERNAME}\"" > $CONF_DIR/$CONF_FILE
-		echo "EDIR_PASSWORD=\"${EDIR_PASSWORD}\"" >> $CONF_DIR/$CONF_FILE
-		echo "EDIR_SEARCH_BASE=\"${EDIR_SEARCH_BASE}\"" >> $CONF_DIR/$CONF_FILE
-		echo "EDIR_LDAP_FQN=\"${EDIR_LDAP_FQN}\"" >> $CONF_DIR/$CONF_FILE
-		chmod 0600 $CONF_DIR/$CONF_FILE
+		chmod 0600 $CONF_FILE
 		chown -R root.root $CONF_DIR
 		echo "Supportconfig Plugin for iPrint Configured"
 	fi
