@@ -1,8 +1,9 @@
 #!/bin/bash
+# REMOVE supportconfig limits
 
 clear
 RCODE=1
-SVER=1.5.2
+SVER=1.5.3
 CONF_DIR="/etc/opt/novell/iprint-plugin"
 CONF_FILE="${CONF_DIR}/iprint-plugin.conf"
 OPT_AUTH_PERSISTENT=0
@@ -73,16 +74,16 @@ echo
 gatherInfo ()
 {
 	if [ $BACKLINE_MODE -eq 1 ]; then
-		BACKLINE_FILE="${CURRENT_SCRIPT}-${SVER}.txt"
+		BACKLINE_FILE="`uname -n`-${CURRENT_SCRIPT}-`date +-%Y-%m%d-%H%M`.txt"
 		printf "Gathering iPrint Information... "
 		/opt/supportconfig/plugins/iPrint &> $BACKLINE_FILE
 		echo Done
 		echo
 	else
 		if [ $SRNUM -gt 0 ]; then
-			supportconfig -r $SRNUM
+			supportconfig -i piPrint -yk -r $SRNUM
 		else
-			supportconfig
+			supportconfig -i piPrint -yk 
 		fi
 	fi
 }
@@ -102,7 +103,7 @@ if [ $CURRENTUID -ne 0 ]; then
 fi
 
 
-[ -s $PGCONF ] && . $PGCONF
+[ -s $CONF_FILE ] && . $CONF_FILE
 while getopts :bhPpr: TMPOPT
 do
 	case $TMPOPT in
