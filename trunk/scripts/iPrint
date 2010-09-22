@@ -10,7 +10,7 @@
 # Modified:    2010 Sep 22
 #############################################################
 
-SVER=1.5.0-7
+SVER=1.5.0-8
 RCFILE="/opt/supportconfig/resources/scplugin.rc"
 PGCONF="/etc/opt/novell/iprint-plugin/iprint-plugin.conf"
 LOG_LINES=500	#0 means include the entire file
@@ -126,7 +126,7 @@ ndsOutput ()
 	plugin_command "ndsstat -r"
 	plugin_command "ndsrepair -T"
 	plugin_command "ndsrepair -E"
-	if [ -z "$EDIR_USERNAME" ]; then
+	if [ -n "$EDIR_USERNAME" ]; then
 		plugin_message "#==[ Command ]======================================#"
 		plugin_message "# ldapconfig get -p localhost -a $EDIR_USERNAME -w *********"
 		ldapconfig get -p localhost -a $EDIR_USERNAME -w $EDIR_PASSWORD
@@ -140,10 +140,14 @@ ndsOutput ()
 		plugin_message "#==[ Command ]======================================#"
 		plugin_message "# ldapconfig get -p $nam_conf_server -a $EDIR_USERNAME -w *********"
 		ldapconfig get -p $nam_conf_server -a $EDIR_USERNAME -w $EDIR_PASSWORD
-		plugin_message 
+		plugin_message
+	else
+		plugin_message "#==[ Warning ]======================================#"
+		plugin_message "# Run iprint-plugin-config for additional LDAP information"
+		plugin_message
 	fi
 
-	if [ -z "$EDIR_LDAP_FQN" ]; then
+	if [ -n "$EDIR_LDAP_FQN" ]; then
 		#Doing an ldapsearch and bind using SSCert.pem
 		plugin_message "#==[ Command ]======================================#"
 		plugin_message "# /opt/novell/eDirectory/bin/ldapsearch -h $iprint_ssl_URL -p 636 -D $EDIR_LDAP_FQN -w ********* -b \"\" -s base -e /etc/opt/novell/certs/SSCert.der \"objectclass=*\""
@@ -156,6 +160,10 @@ ndsOutput ()
 			plugin_message "Secure LDAP connection was successful over port 636 using SSCert.der"
 		fi
 		plugin_message 
+	else
+		plugin_message "#==[ Warning ]======================================#"
+		plugin_message "# Run iprint-plugin-config for secure LDAP connection test"
+		plugin_message
 	fi
 
 	pathsToList="/etc/opt/novell/certs/ /etc/ssl/servercerts/"
