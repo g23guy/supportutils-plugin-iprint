@@ -43,7 +43,7 @@ dist:
 	mv -f $(SRCFILE).gz src
 	@echo
 
-clean:
+clean: uninstall
 	@echo ==================================================================
 	@echo Cleaning up make files
 	@echo ==================================================================
@@ -51,13 +51,10 @@ clean:
 	for i in $(SVNDIRS); do rm -f $$i/*~; done
 	rm -f *~
 	@echo
-
-allclean: uninstall clean
-	@echo
 	@ls -al ${LS_OPTIONS}
 	@echo
 
-build: allclean install
+build: clean install
 	@echo ==================================================================
 	@echo Building RPM package
 	@echo ==================================================================
@@ -68,7 +65,7 @@ build: allclean install
 	@ls -al ${LS_OPTIONS}
 	@echo
 
-buildci: allclean install
+buildci: clean install
 	@echo ==================================================================
 	@echo Building RPM package
 	@echo ==================================================================
@@ -104,5 +101,5 @@ help:
 	@make -v
 	@echo
 	@echo Make options for package: $(OBSPACKAGE)
-	@echo make {install, uninstall, dist, clean, allclean, build[default], buildci, commit}
+	@echo make {install, uninstall, dist, clean, build[default], buildci, commit}
 	@echo
