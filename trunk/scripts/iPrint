@@ -7,10 +7,10 @@
 #              Jeremy Meldrum (jmeldrum@novell.com)
 #              Jason Record (jrecord@novell.com)
 #                (Initial supportconfig plugin port)
-# Modified:    2010 Sep 22
+# Modified:    2010 Sep 29
 #############################################################
 
-SVER=1.9.0
+SVER=1.9.1
 RCFILE="/opt/supportconfig/resources/scplugin.rc"
 PGCONF="/etc/opt/novell/iprint-plugin/iprint-plugin.conf"
 LOG_LINES=500	#0 means include the entire file
@@ -22,7 +22,7 @@ section_header "Supportconfig Plugin for iPrint, v${SVER}"
 
 if [ -z "$EDIR_USERNAME" ]; then
 	plugin_message "#==[ WARNING ]======================================#"
-	plugin_message "# Run iprint-plugin-config for additional information"
+	plugin_message "# Run iPrintInfo for additional information"
 	plugin_message
 fi
 
@@ -143,26 +143,27 @@ ndsOutput ()
 		plugin_message
 	else
 		plugin_message "#==[ Warning ]======================================#"
-		plugin_message "# Run iprint-plugin-config for additional LDAP information"
+		plugin_message "# Run iPrintInfo for additional LDAP information"
 		plugin_message
 	fi
 
 	if [ -n "$EDIR_LDAP_FQN" ]; then
 		#Doing an ldapsearch and bind using SSCert.pem
-		plugin_message "#==[ Command ]======================================#"
-		plugin_message "# /opt/novell/eDirectory/bin/ldapsearch -h $iprint_ssl_URL -p 636 -D $EDIR_LDAP_FQN -w ********* -b \"\" -s base -e /etc/opt/novell/certs/SSCert.der \"objectclass=*\""
-		/opt/novell/eDirectory/bin/ldapsearch -h $iprint_ssl_URL -p 636 -D $EDIR_LDAP_FQN -w $EDIR_PASSWORD -b "" -s base -e /etc/opt/novell/certs/SSCert.der "objectclass=*"
-		returnCode=$?
-		plugin_message 
-		if [ $returnCode -gt 0 ]; then
-			plugin_message "Secure LDAP connection FAILED over port 636 using SSCert.der"
-		else
-			plugin_message "Secure LDAP connection was successful over port 636 using SSCert.der"
-		fi
-		plugin_message 
+		for SRV_URL in "$iprint_ssl_URL localhost $nam_conf_server $ipsmd_conf_dsserver1"
+		do
+			plugin_message "#==[ Command ]======================================#"
+			tmpSrvName=`ndsstat -h $SRV_URL 2>&1 | grep "Server Name" | cut -d. -f2 | cut -d= -f2` >/dev/null
+			if [ -z "$tmpSrvName" ]; then
+				plugin_message "# ndsstat failed using command: ndsstat -h $SRV_URL"
+			else
+				plugin_message "# /opt/novell/eDirectory/bin/ldapsearch -h $SRV_URL -p 636 -D $EDIR_LDAP_FQN -W -b $EDIR_SEARCH_BASE -e /etc/opt/novell/certs/SSCert.der \"cn= SSL CertificateDNS - $tmpSrvName\""
+				/opt/novell/eDirectory/bin/ldapsearch -h $SRV_URL -p 636 -D $EDIR_LDAP_FQN -w $EDIR_PASSWORD -b $EDIR_SEARCH_BASE -e /etc/opt/novell/certs/SSCert.der "cn= SSL CertificateDNS - $tmpSrvName" | sed '/nDSPKICertificateChain:/,/objectClass:/d'
+			fi
+			plugin_message
+		done
 	else
 		plugin_message "#==[ Warning ]======================================#"
-		plugin_message "# Run iprint-plugin-config for secure LDAP connection test"
+		plugin_message "# Run iPrintInfo for secure LDAP connection test"
 		plugin_message
 	fi
 
@@ -261,7 +262,7 @@ getPSM ()
 {
 	#This command list the dynamically created print managers and dispalys the xml file.
 	psmArray=`ls -d /var/opt/novell/iprint/*.psm/padbtxt.xml 2>/dev/null`
-	pconf_files $psmArray
+	pconf_files "$psmArray /opt/novell/iprint/bin/psmimport.xml"
 }
 ###################################################
 printArray ()

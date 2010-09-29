@@ -1,8 +1,7 @@
 #!/bin/bash
 
 clear
-RCODE=1
-SVER=1.5.6
+SVER=1.5.7
 CONF_DIR="/etc/opt/novell/iprint-plugin"
 CONF_FILE="${CONF_DIR}/iprint-plugin.conf"
 OPT_AUTH_PERSISTENT=0
@@ -34,9 +33,18 @@ getCredentials ()
 	if (( $OPT_AUTH_PERSISTENT )); then
 		AUTH_PERSISTENT="true"
 	fi
-	printf "Enter optional LDAP search base: "
-	read EDIR_SEARCH_BASE
-	echo
+	RCODE=1
+	while [ $RCODE -gt 0 ]
+	do
+		printf "Enter LDAP search base: "
+		read EDIR_SEARCH_BASE
+		if [ -z "$EDIR_SEARCH_BASE" ]; then
+			printf "ERROR: Empty LDAP search base\n\n"
+		fi
+		echo
+	done
+
+	RCODE=1
 	while [ $RCODE -gt 0 ]
 	do
 		printf "Enter your FQN in dot notation (ie admin.novell): "
@@ -85,6 +93,8 @@ gatherInfo ()
 		echo "Log File: $BACKLINE_FILE"
 		echo
 	else
+		printf "Press Enter to Gather iPrint Information with Supportconfig "
+		read ANS
 		if [ $SRNUM -gt 0 ]; then
 			supportconfig -r $SRNUM
 		else
