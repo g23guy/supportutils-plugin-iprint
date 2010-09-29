@@ -143,8 +143,10 @@ do
 done
 
 if [ "$AUTH_PERSISTENT" = "true" ]; then
+	echo "Authentication Credentials: Persistent"
 	gatherInfo
 else
+	echo "Authentication Credentials: Single Use"
 	getCredentials
 	gatherInfo
 fi
