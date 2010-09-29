@@ -1,7 +1,7 @@
 #!/bin/bash
 
 clear
-SVER=1.5.7
+SVER=1.5.8
 CONF_DIR="/etc/opt/novell/iprint-plugin"
 CONF_FILE="${CONF_DIR}/iprint-plugin.conf"
 OPT_AUTH_PERSISTENT=0
@@ -39,7 +39,9 @@ getCredentials ()
 		printf "Enter LDAP search base: "
 		read EDIR_SEARCH_BASE
 		if [ -z "$EDIR_SEARCH_BASE" ]; then
-			printf "ERROR: Empty LDAP search base\n\n"
+			echo "ERROR: Empty LDAP search base"
+		else
+			RCODE=0
 		fi
 		echo
 	done
