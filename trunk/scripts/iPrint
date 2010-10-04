@@ -107,14 +107,32 @@ FileOutput ()
 	plugin_command "sed -e '/^PSMObjectPasswd/d' /etc/opt/novell/iprint/conf/ipsmd.conf"
 	pconf_files "/etc/opt/novell/iprint/httpd/conf/iprint_g.conf /etc/opt/novell/iprint/httpd/conf/iprint_ssl.conf /var/opt/novell/iprint/htdocs/iprint.ini"
 
-	SCRIPTS=""
-	for NCS_CHK_DIR in /var/run/ncs /var/opt/novell/log/ncs /etc/opt/novell/ncs /var/opt/novell/ncs
-	do
-		if [ -d $NCS_CHK_DIR ]; then
-			SCRIPTS="$SCRIPTS $(find ${NCS_CHK_DIR}/ -type f -name \*load | grep -v '_Template' | sort)"
-		fi
-	done
-	pconf_files $SCRIPTS
+	NCS_MGR_NAME=$(grep -i ipsmd /var/opt/novell/ncs/*.load | cut -d: -f1)
+	if [ -n "$NCS_MGR_NAME" ]; then
+		pconf_files $NCS_MGR_NAME
+	else 
+		pconf_files $NCS_MGR_NAME
+		echo "NSS Load Script Does Not Exist"		
+	fi
+
+        NCS_MGR_NAME=$(grep -i ipsmd /var/opt/novell/ncs/*.unload | cut -d: -f1)
+        if [ -n "$NCS_MGR_NAME" ]; then
+                pconf_files $NCS_MGR_NAME
+        else
+                pconf_files $NCS_MGR_NAME
+                echo "NSS Unload Script Does Not Exist"
+        fi
+
+
+
+	#SCRIPTS=""
+	#for NCS_CHK_DIR in /var/run/ncs /var/opt/novell/log/ncs /etc/opt/novell/ncs /var/opt/novell/ncs
+	#do
+	#	if [ -d $NCS_CHK_DIR ]; then
+	#		SCRIPTS="$SCRIPTS $(find ${NCS_CHK_DIR}/ -type f -name \*load | grep -v '_Template' | sort)"
+	#	fi
+	#done
+	#pconf_files $SCRIPTS
 	pconf_files "/etc/nam.conf /etc/novell-release /etc/SuSE-release /etc/hosts /etc/passwd /etc/group /etc/openwbem/openwbem.conf /etc/apache2/httpd.conf /etc/sysconfig/apache2 /etc/sysconfig/proxy /etc/permissions.d/iprint"
 }
 
@@ -128,17 +146,17 @@ ndsOutput ()
 	plugin_command "ndsrepair -E"
 	if [ -n "$EDIR_USERNAME" ]; then
 		plugin_message "#==[ Command ]======================================#"
-		plugin_message "# ldapconfig get -p localhost -a $EDIR_USERNAME -w *********"
+		plugin_message "# ldapconfig get -p localhost -a $EDIR_USERNAME "
 		ldapconfig get -p localhost -a $EDIR_USERNAME -w $EDIR_PASSWORD
 		plugin_message 
 
 		plugin_message "#==[ Command ]======================================#"
-		plugin_message "# ldapconfig get -p $iprint_ssl_URL -a $EDIR_USERNAME -w *********"
+		plugin_message "# ldapconfig get -p $iprint_ssl_URL -a $EDIR_USERNAME"
 		ldapconfig get -p $iprint_ssl_URL -a $EDIR_USERNAME -w $EDIR_PASSWORD
 		plugin_message 
 
 		plugin_message "#==[ Command ]======================================#"
-		plugin_message "# ldapconfig get -p $nam_conf_server -a $EDIR_USERNAME -w *********"
+		plugin_message "# ldapconfig get -p $nam_conf_server -a $EDIR_USERNAME"
 		ldapconfig get -p $nam_conf_server -a $EDIR_USERNAME -w $EDIR_PASSWORD
 		plugin_message
 	else
@@ -194,12 +212,15 @@ MiscCommands ()
 {
 	section_header "************* Section #6 Miscellaneous Commands *************"
 	plugin_command 'rpm -qa --last | grep "openwbem\|iprint\|apache"'
+	
 	plugin_message "#==[ Command ]======================================#"
-	plugin_message "# iprintman psm -l -u $EDIR_USERNAME"
-	iprintman psm -l -u $EDIR_USERNAME -P $EDIR_PASSWORD
+	UID_NAME=$(echo $EDIR_USERNAME | cut -d. -f1)
+	plugin_message "# iprintman psm -l -u $UID_NAME"
+	iprintman psm -l -u $UID_NAME -P $EDIR_PASSWORD --accept-cert
 	plugin_message 
 
-	plugin_command "ps -eaf | egrep 'iprint|owcimomd'"
+	plugin_command "ps -eaf | egrep 'iprint'"
+	plugin_command "ps -eaf | egrep 'owcimomd'"
 	plugin_command "/etc/init.d/owcimomd status"
 	plugin_command "chkconfig -l /etc/init.d/cups"
 	plugin_command "/etc/init.d/cups status"
@@ -221,7 +242,7 @@ MiscCommands ()
 	fi
 	plugin_command "id wwwrun"
 	plugin_command "id iprint"
-	plugin_command "netstat -atnp | grep 631"	
+	plugin_command "netstat -atnp | grep "636\|389" | grep -i listen"	
 	plugin_command "netstat -atnp | grep httpd | grep -i listen"	
 	plugin_command "netcat -zv $iprint_ssl_URL 636 #from iprint_ssl.conf"
 	plugin_command "netcat -zv $nam_conf_server 636 #from nam.conf"
