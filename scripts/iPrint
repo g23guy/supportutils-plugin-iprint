@@ -13,7 +13,8 @@
 SVER=1.9.3
 RCFILE="/opt/supportconfig/resources/scplugin.rc"
 PGCONF="/etc/opt/novell/iprint-plugin/iprint-plugin.conf"
-LOG_LINES=500	#0 means include the entire file
+LOG_LINES=200	#0 means include the entire file
+LOG_LINES2=100
 
 [ -s $RCFILE ] && . $RCFILE || { echo "ERROR: Initializing resource file: $RCFILE"; exit 1; }
 [ -s $PGCONF ] && . $PGCONF || { echo "ERROR: Initializing configuration file: $PGCONF"; exit 2; }
@@ -107,20 +108,19 @@ FileOutput ()
 	plugin_command "sed -e '/^PSMObjectPasswd/d' /etc/opt/novell/iprint/conf/ipsmd.conf"
 	pconf_files "/etc/opt/novell/iprint/httpd/conf/iprint_g.conf /etc/opt/novell/iprint/httpd/conf/iprint_ssl.conf /var/opt/novell/iprint/htdocs/iprint.ini"
 
-	NCS_MGR_NAME=$(grep -i ipsmd /var/opt/novell/ncs/*.load | cut -d: -f1)
+	NCS_MGR_NAME=$(grep -i ipsmd /var/opt/novell/ncs/*.load | cut -d: -f1)	
 	if [ -n "$NCS_MGR_NAME" ]; then
 		pconf_files $NCS_MGR_NAME
 	else 
-		pconf_files $NCS_MGR_NAME
-		echo "NSS Load Script Does Not Exist"		
+		plugin_tag "/var/opt/novell/ncs/XXX.load" "iPrint NSS Load Script Does Not Exist"
+		
 	fi
 
         NCS_MGR_NAME=$(grep -i ipsmd /var/opt/novell/ncs/*.unload | cut -d: -f1)
         if [ -n "$NCS_MGR_NAME" ]; then
                 pconf_files $NCS_MGR_NAME
         else
-                pconf_files $NCS_MGR_NAME
-                echo "NSS Unload Script Does Not Exist"
+		plugin_tag "/var/opt/novell/ncs/XXX.unload" "iPrint NSS Unload Script Does Not Exist"
         fi
 
 
@@ -193,15 +193,24 @@ ndsOutput ()
 		plugin_command "ls -al $pathVar"
 	done
 
-	CERTS="/etc/opt/novell/certs/SSCert.der /etc/opt/novell/certs/SSCert.pem /etc/ssl/servercerts/servercert.pem"
+	if certtool -i --inder --infile /etc/opt/novell/certs/SSCert.der; then
+		plugin_command "certtool -i --inder --infile /etc/opt/novell/certs/SSCert.der | sed '/Subject:/,/modulus:/!d'"
+		
+	else
+		plugin_command "certtool -i --inder --infile /etc/opt/novell/certs/SSCert.der"
+	fi
+		
+	CERTS="/etc/opt/novell/certs/SSCert.pem /etc/ssl/servercerts/servercert.pem"
 	for certFile in $CERTS
 	do
-		if certtool -i --inder --infile $certFile &>/dev/null; then
-			plugin_command "certtool -i --inder --infile $certFile | sed '/Subject:/,/modulus:/!d'"
+		if certtool -i --infile $certFile &>/dev/null; then
+			plugin_command "certtool -i --infile $certFile | sed '/Subject:/,/modulus:/!d'"
 		else
-			plugin_command "certtool -i --inder --infile $certFile"
+			plugin_command "certtool -i --infile $certFile"
 		fi
 	done
+
+
 
 	#Checks the connection to the SSCert.pem file through openssl
 	plugin_command "echo -n | SSL_CERT=/no_dir openssl s_client -connect localhost:636 -CAfile /etc/opt/novell/certs/SSCert.pem -verify 255 | sed '/-----BEGIN CERTIFICATE-----/,/-----END CERTIFICATE-----/d'"
@@ -269,8 +278,15 @@ LogOutput ()
 	logFiles="/var/opt/novell/log/iprint/idsd.log /var/opt/novell/log/iprint/ipsmd.log /var/opt/novell/log/iprint/ipsmprov.log /var/opt/novell/log/iprint/iprintgw.log /var/opt/novell/iprint/$managerName.psm/ndpsmmon.log /var/log/messages"
 	plog_files $LOG_LINES $logFiles
 	plog_files $LOG_LINES "/var/log/apache2/error_log"
-	plog_files $LOG_LINES "/var/log/apache2/access_log /var/lib/novell-lum/nam.log"
-	plog_files $LOG_LINES "/var/opt/novell/log/iprint_nss_relocate.log"
+	plog_files $LOG_LINES2 "/var/log/apache2/access_log /var/lib/novell-lum/nam.log"
+	
+	if [ -e "/var/opt/novell/log/iprint_nss_relocate.log" ]; then
+		plog_files $LOG_LINES "/var/opt/novell/log/iprint_nss_relocate.log"	
+
+	else 
+		plugin_tag "/var/opt/novell/log/iprint_nss_relocate.log" "iprint_nss_relocate.log Does Not Exist"		
+	fi
+	
 }
 
 checkPersistentCredentials ()
