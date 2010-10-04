@@ -36,7 +36,7 @@ getCredentials ()
 	RCODE=1
 	while [ $RCODE -gt 0 ]
 	do
-		printf "Enter LDAP search base: "
+		printf "Enter LDAP search base (ie o=Novell): "
 		read EDIR_SEARCH_BASE
 		if [ -z "$EDIR_SEARCH_BASE" ]; then
 			echo "ERROR: Empty LDAP search base"
