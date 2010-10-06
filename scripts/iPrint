@@ -36,6 +36,10 @@ errorFlag="1"
 tempVar=""
 managerName=""
 
+#Labels
+RIGHTS_LABEL="Directory Listings"
+RPM_LABEL="RPM Check"
+
 #Stores the server DNS or IP address variables
 iprint_ssl_URL=""
 ipsmd_conf_dsserver1=""
@@ -55,7 +59,9 @@ ListRights ()
 {
 	section_header "************* Section #2 Rights Listings *************"
 	for i in $rpmArray; do
-		plugin_command "rpm -ql $i | xargs -d '\n' ls -ld"
+		plugin_tag "RPM Check" "$i"
+		rpm -ql $i | xargs -d '\n' ls -ld
+		#plugin_command "rpm -ql $i | xargs -d '\n' ls -ld"
 	done
 }
 ###################################################
@@ -66,36 +72,44 @@ ListRightsStatic ()
 	pathsToList="/var/opt/novell/iprint/ /etc/opt/novell/iprint/conf/ /var/opt/novell/run/iprint/ /opt/novell/iprint/bin/ /etc/opt/novell/iprint/httpd/conf/ "
 	for pathVar in $pathsToList
 	do
-		plugin_command "ls -al $pathVar"
+		plugin_tag "$RIGHTS_LABEL" "$pathVar"
+		ls -al $pathVar;echo ""
 	done
 
 	pathsToList="/var/opt/novell/iprint/mod_ipp/ /var/opt/novell/iprint/htdocs/"	
 	for pathVar in $pathsToList
 	do
-		plugin_command "ls -Rl $pathVar"
+		plugin_tag "$RIGHTS_LABEL" "$pathVar"	
+		ls -Rl $pathVar;echo ""
 	done
 
 	pathsToList="/var/opt/novell/log/iprint/ /var/opt/novell/iprint/resdir/ "	
 	for pathVar in $pathsToList
 	do
-		plugin_command "ls -alh $pathVar"
+		plugin_tag "$RIGHTS_LABEL" "$pathVar"
+		ls -alh $pathVar;echo ""
 	done
 
-	plugin_command "ls -al /var/opt/novell/iprint/*.psm"
+	plugin_tag "$RIGHTS_LABEL" "/var/opt/novell/iprint/*.psm"
+	ls -al /var/opt/novell/iprint/*.psm;echo ""
 	
 	pathsToList="driver_mac-os-x_noarch_en driver_windows-95_x86-32_en driver_windows-nt-4_x86-32_en driver_windows-nt-5.1_x86-32_en driver_windows-nt-5_x86-32_en driver_windows-nt-6_x86-32_en driver_windows-nt-6_x86-64_en"
 	for pathVar in $pathsToList
 	do
 		if [ -d /var/opt/novell/iprint/resdir/${pathVar} ]; then
-			plugin_command "ls -al /var/opt/novell/iprint/resdir/${pathVar}"
+			plugin_tag "$RIGHTS_LABEL" "/var/opt/novell/iprint/resdir/${pathVar}"
+			ls -al /var/opt/novell/iprint/resdir/${pathVar};echo ""
 		fi
 	done
 
 	
 	#NSS Rights listing
 	if [ -h "/var/opt/novell/iprint" ]; then
-		plugin_command "rights show -f /var/opt/novell/log/iprint"
-		plugin_command "rights show -f /var/opt/novell/iprint"
+		plugin_tag "$RIGHTS_LABEL" "rights show -f /var/opt/novell/log/iprint"
+		rights show -f /var/opt/novell/log/iprint;echo ""
+
+		plugin_tag "$RIGHTS_LABEL" "rights show -f /var/opt/novell/iprint"
+		rights show -f /var/opt/novell/iprint;echo ""
 	fi
 
 }
@@ -104,23 +118,28 @@ ListRightsStatic ()
 FileOutput ()
 {
 	section_header "************* Section #4 File Output *************"
-	plugin_command "sed -e '/^IDSObjectPasswd/d' /etc/opt/novell/iprint/conf/idsd.conf"
-	plugin_command "sed -e '/^PSMObjectPasswd/d' /etc/opt/novell/iprint/conf/ipsmd.conf"
+	
+	plugin_tag "Configuration File" "/etc/opt/novell/iprint/conf/idsd.conf"
+	sed -e '/^IDSObjectPasswd/d' /etc/opt/novell/iprint/conf/idsd.conf;echo ""
+	
+	plugin_tag "Configuration File" "/etc/opt/novell/iprint/conf/ipsmd.conf"
+	sed -e '/^PSMObjectPasswd/d' /etc/opt/novell/iprint/conf/ipsmd.conf;echo ""		
+
 	pconf_files "/etc/opt/novell/iprint/httpd/conf/iprint_g.conf /etc/opt/novell/iprint/httpd/conf/iprint_ssl.conf /var/opt/novell/iprint/htdocs/iprint.ini"
 
-	NCS_MGR_NAME=$(grep -i ipsmd /var/opt/novell/ncs/*.load | cut -d: -f1)	
+	NCS_MGR_NAME=$(grep -i ipsmd /var/opt/novell/ncs/*.load | cut -d: -f1 | grep  iPrint_Template --invert-match)	
 	if [ -n "$NCS_MGR_NAME" ]; then
 		pconf_files $NCS_MGR_NAME
 	else 
-		plugin_tag "/var/opt/novell/ncs/XXX.load" "iPrint NSS Load Script Does Not Exist"
+		plugin_tag "Configuration File" "iPrint NSS Load Script Does Not Exist"
 		
 	fi
 
-        NCS_MGR_NAME=$(grep -i ipsmd /var/opt/novell/ncs/*.unload | cut -d: -f1)
+        NCS_MGR_NAME=$(grep -i ipsmd /var/opt/novell/ncs/*.unload | cut -d: -f1 | grep  iPrint_Template --invert-match)
         if [ -n "$NCS_MGR_NAME" ]; then
                 pconf_files $NCS_MGR_NAME
         else
-		plugin_tag "/var/opt/novell/ncs/XXX.unload" "iPrint NSS Unload Script Does Not Exist"
+		plugin_tag "Configuration File" "iPrint NSS Unload Script Does Not Exist"
         fi
 
 
@@ -252,21 +271,6 @@ MiscCommands ()
 	plugin_command "id wwwrun"
 	plugin_command "id iprint"
 	plugin_command "netstat -atnp | egrep \"636|389\" | grep -i listen"
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-	#plugin_command "netstat -atnp | grep "636\|389" | grep -i listen"	
 	plugin_command "netstat -atnp | grep httpd | grep -i listen"	
 	plugin_command "netcat -zv $iprint_ssl_URL 636 #from iprint_ssl.conf"
 	plugin_command "netcat -zv $nam_conf_server 636 #from nam.conf"
@@ -280,7 +284,6 @@ MiscCommands ()
 	plugin_command "getent passwd | grep wwwrun"
 	plugin_command "getent group | grep www"
 	plugin_command "ps -eo pcpu,pid,user,args | sort -k 1 -r | head -10 | grep -e iPrintInfo --invert-match"
-	plugin_command "iostat"
 	plugin_command "namuserlist -x $EDIR_SEARCH_BASE"
 	plugin_command "namgrouplist -x $EDIR_SEARCH_BASE"
 }
@@ -290,16 +293,17 @@ LogOutput ()
 {
 	section_header "************* Section #7 Log Output Files *************"
 	managerName=` ls -al /etc/opt/novell/iprint/conf/ipsmd.conf | cut -d/ -f13 | sed 's/.ipsmd.conf//'`
-	logFiles="/var/opt/novell/log/iprint/idsd.log /var/opt/novell/log/iprint/ipsmd.log /var/opt/novell/log/iprint/ipsmprov.log /var/opt/novell/log/iprint/iprintgw.log /var/opt/novell/iprint/$managerName.psm/ndpsmmon.log /var/log/messages"
+	plog_files $LOG_LINES2/var/opt/novell/log/iprint/iprintgw.log
+	logFiles="/var/opt/novell/log/iprint/idsd.log /var/opt/novell/log/iprint/ipsmd.log /var/opt/novell/log/iprint/ipsmprov.log /var/opt/novell/iprint/$managerName.psm/ndpsmmon.log /var/log/messages"
 	plog_files $LOG_LINES $logFiles
+	
 	plog_files $LOG_LINES "/var/log/apache2/error_log"
 	plog_files $LOG_LINES2 "/var/log/apache2/access_log /var/lib/novell-lum/nam.log"
 	
 	if [ -e "/var/opt/novell/log/iprint_nss_relocate1.log" ]; then
 		plog_files $LOG_LINES "/var/opt/novell/log/iprint_nss_relocate.log"	
 
-	else 
-		plugin_tag "/var/opt/novell/log/iprint_nss_relocate.log" "iprint_nss_relocate.log Does Not Exist"		
+	else 	
 		plugin_tag "Log File" "/var/opt/novell/log/iprint_nss_relocate.log - File Not Found"
 	fi
 	
