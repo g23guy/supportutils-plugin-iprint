@@ -251,7 +251,22 @@ MiscCommands ()
 	fi
 	plugin_command "id wwwrun"
 	plugin_command "id iprint"
-	plugin_command "netstat -atnp | grep "636\|389" | grep -i listen"	
+	plugin_command "netstat -atnp | egrep \"636|389\" | grep -i listen"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	#plugin_command "netstat -atnp | grep "636\|389" | grep -i listen"	
 	plugin_command "netstat -atnp | grep httpd | grep -i listen"	
 	plugin_command "netcat -zv $iprint_ssl_URL 636 #from iprint_ssl.conf"
 	plugin_command "netcat -zv $nam_conf_server 636 #from nam.conf"
@@ -280,11 +295,12 @@ LogOutput ()
 	plog_files $LOG_LINES "/var/log/apache2/error_log"
 	plog_files $LOG_LINES2 "/var/log/apache2/access_log /var/lib/novell-lum/nam.log"
 	
-	if [ -e "/var/opt/novell/log/iprint_nss_relocate.log" ]; then
+	if [ -e "/var/opt/novell/log/iprint_nss_relocate1.log" ]; then
 		plog_files $LOG_LINES "/var/opt/novell/log/iprint_nss_relocate.log"	
 
 	else 
 		plugin_tag "/var/opt/novell/log/iprint_nss_relocate.log" "iprint_nss_relocate.log Does Not Exist"		
+		plugin_tag "Log File" "/var/opt/novell/log/iprint_nss_relocate.log - File Not Found"
 	fi
 	
 }
