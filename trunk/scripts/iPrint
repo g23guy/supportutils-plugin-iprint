@@ -39,6 +39,7 @@ managerName=""
 #Labels
 RIGHTS_LABEL="Directory Listings"
 RPM_LABEL="RPM Check"
+EDIR_LABEL="eDir and Certs"
 
 #Stores the server DNS or IP address variables
 iprint_ssl_URL=""
@@ -90,8 +91,9 @@ ListRightsStatic ()
 		ls -alh $pathVar;echo ""
 	done
 
-	plugin_tag "$RIGHTS_LABEL" "/var/opt/novell/iprint/*.psm"
-	ls -al /var/opt/novell/iprint/*.psm;echo ""
+	managerName=` ls -al /etc/opt/novell/iprint/conf/ipsmd.conf | cut -d/ -f13 | sed 's/.ipsmd.conf//'`
+	plugin_tag "$RIGHTS_LABEL" "/var/opt/novell/iprint/$managerName.psm"
+	ls -al /var/opt/novell/iprint/"$managerName.psm";echo ""
 	
 	pathsToList="driver_mac-os-x_noarch_en driver_windows-95_x86-32_en driver_windows-nt-4_x86-32_en driver_windows-nt-5.1_x86-32_en driver_windows-nt-5_x86-32_en driver_windows-nt-6_x86-32_en driver_windows-nt-6_x86-64_en"
 	for pathVar in $pathsToList
@@ -160,26 +162,32 @@ ndsOutput ()
 {
 
 	section_header "************* Section #5 eDirectory and Cert Information *************"
-	plugin_command "ndsstat -r"
-	plugin_command "ndsrepair -T"
-	plugin_command "ndsrepair -E"
+	plugin_tag "$EDIR_LABEL" "ndsstat -r"
+	ndsstat -r;echo ""
+	
+	plugin_tag "$EDIR_LABEL" "ndsrepair -T"
+	ndsrepair -T;echo ""
+	
+	plugin_tag "$EDIR_LABEL" "ndsrepair -E"
+	ndsrepair -E;echo ""
+	
 	if [ -n "$EDIR_USERNAME" ]; then
-		plugin_message "#==[ Command ]======================================#"
+		plugin_message "#==[ $EDIR_LABEL ]======================================#"
 		plugin_message "# ldapconfig get -p localhost -a $EDIR_USERNAME "
 		ldapconfig get -p localhost -a $EDIR_USERNAME -w $EDIR_PASSWORD
 		plugin_message 
 
-		plugin_message "#==[ Command ]======================================#"
+		plugin_message "#==[ $EDIR_LABEL ]======================================#"
 		plugin_message "# ldapconfig get -p $iprint_ssl_URL -a $EDIR_USERNAME"
 		ldapconfig get -p $iprint_ssl_URL -a $EDIR_USERNAME -w $EDIR_PASSWORD
 		plugin_message 
 
-		plugin_message "#==[ Command ]======================================#"
+		plugin_message "#==[ $EDIR_LABEL ]======================================#"
 		plugin_message "# ldapconfig get -p $nam_conf_server -a $EDIR_USERNAME"
 		ldapconfig get -p $nam_conf_server -a $EDIR_USERNAME -w $EDIR_PASSWORD
 		plugin_message
 	else
-		plugin_message "#==[ Warning ]======================================#"
+		plugin_message "#==[ $EDIR_LABEL ]======================================#"
 		plugin_message "# Run iPrintInfo for additional LDAP information"
 		plugin_message
 	fi
@@ -190,7 +198,7 @@ ndsOutput ()
 		do
 			SRV_URL=$(echo $VAL_CONF | cut -d: -f1)
 			SRV_CNF=$(echo $VAL_CONF | cut -d: -f2)
-			plugin_message "#==[ Command ]======================================#"
+			plugin_message "#==[ $EDIR_LABEL ]======================================#"
 			tmpSrvName=`ndsstat -h $SRV_URL 2>&1 | grep "Server Name" | cut -d. -f2 | cut -d= -f2` >/dev/null
 			if [ -z "$tmpSrvName" ]; then
 				plugin_message "# ndsstat failed using command: ndsstat -h $SRV_URL"
@@ -209,30 +217,37 @@ ndsOutput ()
 	pathsToList="/etc/opt/novell/certs/ /etc/ssl/servercerts/"
 	for pathVar in $pathsToList
 	do
-		plugin_command "ls -al $pathVar"
+		plugin_tag "$EDIR_LABEL" "ls -al $pathVar"
+		
+		ls -al $pathVar;echo ""
 	done
 
-	if certtool -i --inder --infile /etc/opt/novell/certs/SSCert.der; then
-		plugin_command "certtool -i --inder --infile /etc/opt/novell/certs/SSCert.der | sed '/Subject:/,/modulus:/!d'"
+	if certtool -i --inder --infile /etc/opt/novell/certs/SSCert.der &>/dev/null; then
+		plugin_tag "$EDIR_LABEL" "certtool -i --inder --infile /etc/opt/novell/certs/SSCert.der"
+		certtool -i --inder --infile /etc/opt/novell/certs/SSCert.der | sed "/Subject:/,/modulus:/!d";echo ""
 		
 	else
-		plugin_command "certtool -i --inder --infile /etc/opt/novell/certs/SSCert.der"
+		plugin_tag "$EDIR_LABEL" "certtool -i --inder --infile /etc/opt/novell/certs/SSCert.der"
+		certtool -i --inder --infile /etc/opt/novell/certs/SSCert.der;echo ""
 	fi
 		
 	CERTS="/etc/opt/novell/certs/SSCert.pem /etc/ssl/servercerts/servercert.pem"
 	for certFile in $CERTS
 	do
 		if certtool -i --infile $certFile &>/dev/null; then
-			plugin_command "certtool -i --infile $certFile | sed '/Subject:/,/modulus:/!d'"
+			plugin_tag "$EDIR_LABEL" "certtool -i --infile $certFile"
+			certtool -i --infile $certFile | sed "/Subject:/,/modulus:/!d";echo ""
 		else
-			plugin_command "certtool -i --infile $certFile"
+			plugin_tag "$EDIR_LABEL" "certtool -i --infile $certFile"
+			"certtool -i --infile $certFile";echo ""
 		fi
 	done
 
 
 
 	#Checks the connection to the SSCert.pem file through openssl
-	plugin_command "echo -n | SSL_CERT=/no_dir openssl s_client -connect localhost:636 -CAfile /etc/opt/novell/certs/SSCert.pem -verify 255 | sed '/-----BEGIN CERTIFICATE-----/,/-----END CERTIFICATE-----/d'"
+	plugin_tag "$EDIR_LABEL" "echo -n | SSL_CERT=/no_dir openssl s_client -connect localhost:636 -CAfile /etc/opt/novell/certs/SSCert.pem -verify 255"
+	echo -n | SSL_CERT=/no_dir openssl s_client -connect localhost:636 -CAfile /etc/opt/novell/certs/SSCert.pem -verify 255 | sed '/-----BEGIN CERTIFICATE-----/,/-----END CERTIFICATE-----/d';echo ""
 }
 
 ###################################################
@@ -292,7 +307,7 @@ MiscCommands ()
 LogOutput ()
 {
 	section_header "************* Section #7 Log Output Files *************"
-	managerName=` ls -al /etc/opt/novell/iprint/conf/ipsmd.conf | cut -d/ -f13 | sed 's/.ipsmd.conf//'`
+	#managerName=` ls -al /etc/opt/novell/iprint/conf/ipsmd.conf | cut -d/ -f13 | sed 's/.ipsmd.conf//'`
 	plog_files $LOG_LINES2/var/opt/novell/log/iprint/iprintgw.log
 	logFiles="/var/opt/novell/log/iprint/idsd.log /var/opt/novell/log/iprint/ipsmd.log /var/opt/novell/log/iprint/ipsmprov.log /var/opt/novell/iprint/$managerName.psm/ndpsmmon.log /var/log/messages"
 	plog_files $LOG_LINES $logFiles
