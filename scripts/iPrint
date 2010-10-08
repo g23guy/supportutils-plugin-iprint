@@ -22,9 +22,7 @@ LOG_LINES2=100
 section_header "Supportconfig Plugin for iPrint, v${SVER}"
 
 if [ -z "$EDIR_USERNAME" ]; then
-	plugin_message "#==[ WARNING ]======================================#"
-	plugin_message "# Run iPrintInfo for additional information"
-	plugin_message
+	plugin_tag "WARNING" "Run iPrintInfo for additional information"
 fi
 
 declare -a rpmArray
