@@ -7,7 +7,7 @@
 #              Jeremy Meldrum (jmeldrum@novell.com)
 #              Jason Record (jrecord@novell.com)
 #                (Initial supportconfig plugin port)
-# Modified:    2010 Sep 29
+# Modified:    2010 Oct 08
 #############################################################
 
 SVER=1.9.3
@@ -264,7 +264,9 @@ MiscCommands ()
 	plugin_command "ps -eaf | egrep 'owcimomd'"
 	plugin_command "/etc/init.d/owcimomd status"
 	plugin_command "chkconfig -l cups"
+	plugin_command "chkconfig -l novell-ipsmd"
 	plugin_command "/etc/init.d/cups status"
+	plugin_command "/etc/init.d/novell-ipsmd status"
 	plugin_command "uname -a"
 	plugin_command "uptime"
 	plugin_command "ifconfig | grep 'inet addr' | sed 's/^[ \t]*//'"
