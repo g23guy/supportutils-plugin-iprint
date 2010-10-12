@@ -7,10 +7,10 @@
 #              Jeremy Meldrum (jmeldrum@novell.com)
 #              Jason Record (jrecord@novell.com)
 #                (Initial supportconfig plugin port)
-# Modified:    2010 Oct 08
+# Modified:    2010 Oct 12
 #############################################################
 
-SVER=1.9.3
+SVER=2.0
 RCFILE="/opt/supportconfig/resources/scplugin.rc"
 PGCONF="/etc/opt/novell/iprint-plugin/iprint-plugin.conf"
 LOG_LINES=200	#0 means include the entire file
@@ -22,13 +22,14 @@ LOG_LINES2=100
 section_header "Supportconfig Plugin for iPrint, v${SVER}"
 
 if [ -z "$EDIR_USERNAME" ]; then
-	plugin_tag "WARNING" "Run iPrintInfo for additional information"
+	plugin_tag "WARNING" "Run iPrintInfo -h for additional information"
+	echo "Secure commands will not be performed"
 fi
 
 declare -a rpmArray
 declare -a fileArray
 declare -a staticArray
-declare -a psmArray
+#declare -a psmArray
 declare -a grepArray
 errorFlag="1"
 tempVar=""
@@ -38,6 +39,9 @@ managerName=""
 RIGHTS_LABEL="Directory Listings"
 RPM_LABEL="RPM Check"
 EDIR_LABEL="eDir and Certs"
+COMM_LABEL="Command"
+LOG_LABEL="Log File"
+XML_LABEL="XML File"
 
 #Stores the server DNS or IP address variables
 iprint_ssl_URL=""
@@ -49,6 +53,21 @@ nam_conf_server=""
 PackageValidation ()
 {
 	section_header "************* Section #1 RPM Validation *************"
+	echo "RPM Verify Key:"
+	
+	echo "Summary: Each of the 8 characters denotes the result of a comparison of attribute(s) of the file to the value of those attribute(s) recorded in the database."
+	echo "A single "." (period) means the test passed, while a single "?" (question mark) indicates the test could not be performed (e.g. file permissions prevent reading)." 
+	echo "Otherwise, the (mnemonically emBoldened) character denotes failure of the corresponding --verify test:"
+	echo ""
+	echo "S -- file Size differs"
+	echo "M -- Mode differs (includes permissions and file type)"
+	echo "5 -- MD5 sum differs"
+	echo "D -- Device major/minor number mismatch"
+	echo "L -- readlink(2) path mismatch"
+	echo "U -- User ownership differs"
+	echo "G -- Group ownership differs"
+	echo "T -- mTime differs"
+	
 	for i in $rpmArray; do
 		validate_rpm $i
 	done
@@ -73,6 +92,7 @@ ListRightsStatic ()
 	do
 		plugin_tag "$RIGHTS_LABEL" "$pathVar"
 		ls -al $pathVar;echo ""
+		ls -aln $pathVar;echo ""
 	done
 
 	pathsToList="/var/opt/novell/iprint/mod_ipp/ /var/opt/novell/iprint/htdocs/"	
@@ -269,7 +289,9 @@ MiscCommands ()
 	plugin_command "/etc/init.d/novell-ipsmd status"
 	plugin_command "uname -a"
 	plugin_command "uptime"
-	plugin_command "ifconfig | grep 'inet addr' | sed 's/^[ \t]*//'"
+	
+	plugin_tag "$COMM_LABEL" "ifconfig | grep 'inet addr'"
+	ifconfig | grep "inet addr" | sed "s/^[ \t]*//";echo ""
 
 	eName=`echo $EDIR_USERNAME | cut -d. -f1` 
 	#echo $eName
@@ -303,23 +325,49 @@ MiscCommands ()
 	plugin_command "namgrouplist -x $EDIR_SEARCH_BASE"
 }
 
+displayXML ()
+{
+
+	if [ -e /opt/novell/iprint/bin/psmimport.xml ]; then
+		plugin_tag "$XML_LABEL" "/opt/novell/iprint/bin/psmimport.xml"
+		cat /opt/novell/iprint/bin/psmimport.xml
+	else
+		plugin_tag "$XML_LABEL" "/opt/novell/iprint/bin/psmimport.xml - File Not Found"
+	
+	fi
+	
+	plugin_tag "$XML_LABEL" "/var/opt/novell/iprint/$managerName.psm/padbtxt.xml"
+	cat "/var/opt/novell/iprint/$managerName.psm/padbtxt.xml"	
+
+}
+
+
+
 ###################################################
 LogOutput ()
 {
 	section_header "************* Section #7 Log Output Files *************"
-	#managerName=` ls -al /etc/opt/novell/iprint/conf/ipsmd.conf | cut -d/ -f13 | sed 's/.ipsmd.conf//'`
-	plog_files $LOG_LINES2/var/opt/novell/log/iprint/iprintgw.log
-	logFiles="/var/opt/novell/log/iprint/idsd.log /var/opt/novell/log/iprint/ipsmd.log /var/opt/novell/log/iprint/ipsmprov.log /var/opt/novell/iprint/$managerName.psm/ndpsmmon.log /var/log/messages"
+	#echo $managerName
+	#managerName2=`echo $managerName | sed "s/[[:space:]]/\\ /g"`
+	#echo $managerName2	
+	
+	
+	
+	logFiles="/var/opt/novell/log/iprint/idsd.log /var/opt/novell/log/iprint/ipsmd.log /var/opt/novell/log/iprint/ipsmprov.log /var/log/messages"
 	plog_files $LOG_LINES $logFiles
 	
 	plog_files $LOG_LINES "/var/log/apache2/error_log"
 	plog_files $LOG_LINES2 "/var/log/apache2/access_log /var/lib/novell-lum/nam.log"
+	plog_files $LOG_LINES2/var/opt/novell/log/iprint/iprintgw.log
+	
+	plugin_tag "$LOG_LABEL" "/var/opt/novell/iprint/$managerName.psm/ndpsmmon.log - Last $LOG_LINES2 Lines"	
+	tail -$LOG_LINES "/var/opt/novell/iprint/$managerName.psm/ndpsmmon.log"
 	
 	if [ -e "/var/opt/novell/log/iprint_nss_relocate1.log" ]; then
 		plog_files $LOG_LINES "/var/opt/novell/log/iprint_nss_relocate.log"	
 
 	else 	
-		plugin_tag "Log File" "/var/opt/novell/log/iprint_nss_relocate.log - File Not Found"
+		plugin_tag "$LOG_LABEL" "/var/opt/novell/log/iprint_nss_relocate.log - File Not Found"
 	fi
 	
 }
@@ -337,19 +385,6 @@ PGCONF_EOF
 	fi
 }
 
-###################################################
-getPSM ()
-{
-	#This command list the dynamically created print managers and dispalys the xml file.
-	psmArray=`ls -d /var/opt/novell/iprint/*.psm/padbtxt.xml 2>/dev/null`
-	pconf_files "$psmArray /opt/novell/iprint/bin/psmimport.xml"
-}
-###################################################
-printArray ()
-{ 
-	printf "\n   ============== $1 ==============\n"
-}
-###################################################
 QueryRPMs ()
 {
 	#Enters all of the installed iprint rpms into an array for use in another function.
@@ -381,7 +416,8 @@ execCalls ()
 	FileOutput
 	ndsOutput
 	MiscCommands
-	getPSM
+	#getPSM
+	displayXML
 	LogOutput
 }
 ###################################################

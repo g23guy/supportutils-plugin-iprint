@@ -1,7 +1,7 @@
 #!/bin/bash
 
 clear
-SVER=1.5.8
+SVER=2.0
 CONF_DIR="/etc/opt/novell/iprint-plugin"
 CONF_FILE="${CONF_DIR}/iprint-plugin.conf"
 OPT_AUTH_PERSISTENT=0
@@ -46,37 +46,55 @@ getCredentials ()
 		echo
 	done
 
-	RCODE=1
-	while [ $RCODE -gt 0 ]
-	do
-		printf "Enter your FQN in dot notation (ie admin.novell): "
-		read EDIR_USERNAME
+	#RCODE=1
+	#while [ $RCODE -gt 0 ]
+	#do
+	printf "Enter your FQN in dot notation (ie admin.novell): "
+	read EDIR_USERNAME
+	echo
+	printf "Enter the $EDIR_USERNAME Password: "
+	read -s EDIR_PASSWORD
+	echo
+	ndslogin -p $EDIR_PASSWORD $EDIR_USERNAME
+	RCODE=$?
+	echo
+	if [ $RCODE -gt 0 ]; then
+		#echo "ERROR: ndslogin Failed for username $EDIR_USERNAME"
 		echo
-		printf "Enter the $EDIR_USERNAME Password: "
-		read -s EDIR_PASSWORD
-		echo
-		ndslogin -p $EDIR_PASSWORD $EDIR_USERNAME
-		RCODE=$?
-		echo
-		if [ $RCODE -gt 0 ]; then
-			echo "ERROR: The $EDIR_USERNAME and password don't match, please try again."
-			echo
+			
+		tmplength=$(echo $EDIR_USERNAME | tr -dc '.' | wc -c )
+		context_length=`expr $tmplength + 1`	
+		cName=$(echo $EDIR_USERNAME | cut -d. -f1 )
+		orgName=$(echo $EDIR_USERNAME | cut -d. -f$context_length )
+		
+		#concatenates  the FQN together		
+		if [ $tmplength = "1" ]; then 	    
+		    EDIR_LDAP_FQN="cn=${cName},o=${orgName}"
 		else
-			EDIR_LDAP_FQN=$(ndslogin -p novell admin.novell | grep "eDirectory Login" | awk '{print $NF}' | sed -e 's/^\.//;s/\.$//;s/\./,/g')
-			EDIR_TREE=$(echo $EDIR_LDAP_FQN | awk -F, '{print $NF}')
-			EDIR_LDAP_FQN=$(echo $EDIR_LDAP_FQN | sed -e "s/,$EDIR_TREE//")
-			mkdir -p $CONF_DIR
-			echo "EDIR_USERNAME=\"${EDIR_USERNAME}\"" > $CONF_FILE
-			echo "EDIR_PASSWORD=\"${EDIR_PASSWORD}\"" >> $CONF_FILE
-			echo "EDIR_SEARCH_BASE=\"${EDIR_SEARCH_BASE}\"" >> $CONF_FILE
-			echo "EDIR_LDAP_FQN=\"${EDIR_LDAP_FQN}\"" >> $CONF_FILE
-			echo "AUTH_PERSISTENT=\"$AUTH_PERSISTENT\"" >> $CONF_FILE
-			chmod 0700 $CONF_DIR
-			chmod 0600 $CONF_FILE
-			chown -R root.root $CONF_DIR
-			echo "Supportconfig Plugin for iPrint Configured"
-		fi
-	done
+	        ouName=$(echo $EDIR_USERNAME | cut -d. -f2-$tmplength | sed 's/\./,ou\=/g')		    
+	        EDIR_LDAP_FQN="cn=${cName},ou=${ouName},o=${orgName}" 	    
+		fi				
+		echo 0	
+	else
+		
+		EDIR_LDAP_FQN=$(ndslogin -p $EDIR_PASSWORD $EDIR_USERNAME | grep "eDirectory Login" | awk '{print $NF}' | sed -e 's/^\.//;s/\.$//;s/\./,/g')
+		EDIR_TREE=$(echo $EDIR_LDAP_FQN | awk -F, '{print $NF}')
+		EDIR_LDAP_FQN=$(echo $EDIR_LDAP_FQN | sed -e "s/,$EDIR_TREE//")
+		echo 1
+
+	fi
+	echo 2
+	mkdir -p $CONF_DIR
+	echo "EDIR_USERNAME=\"${EDIR_USERNAME}\"" > $CONF_FILE
+	echo "EDIR_PASSWORD=\"${EDIR_PASSWORD}\"" >> $CONF_FILE
+	echo "EDIR_SEARCH_BASE=\"${EDIR_SEARCH_BASE}\"" >> $CONF_FILE
+	echo "EDIR_LDAP_FQN=\"${EDIR_LDAP_FQN}\"" >> $CONF_FILE
+	echo "AUTH_PERSISTENT=\"$AUTH_PERSISTENT\"" >> $CONF_FILE
+	chmod 0700 $CONF_DIR
+	chmod 0600 $CONF_FILE
+	chown -R root.root $CONF_DIR
+	echo "Supportconfig Plugin for iPrint Configured"
+	#done
 echo
 }
 
@@ -87,13 +105,13 @@ gatherInfo ()
 			BACKLINE_FILE="`pwd`/`uname -n`-${CURRENT_SCRIPT}-${SVER}`date +-%Y-%m%d-%H%M`-SR${SRNUM}.txt"
 		else
 			BACKLINE_FILE="`pwd`/`uname -n`-${CURRENT_SCRIPT}-${SVER}`date +-%Y-%m%d-%H%M`.txt"
-		fi
+		fi		
 		printf "Gathering iPrint Information... "
 		/opt/supportconfig/plugins/iPrint &> $BACKLINE_FILE
 		echo Done
-		echo
-		echo "Log File: $BACKLINE_FILE"
-		echo
+		echo		
+		echo "Log File Can Be Found At: $BACKLINE_FILE"
+		echo		
 	else
 		printf "Press Enter to Gather iPrint Information with Supportconfig "
 		read ANS
@@ -102,7 +120,7 @@ gatherInfo ()
 		else
 			supportconfig 
 		fi
-	fi
+	fi	
 }
 
 #################################################################
