@@ -272,14 +272,12 @@ ndsOutput ()
 MiscCommands ()
 {
 	section_header "************* Section #6 Miscellaneous Commands *************"
-	plugin_command 'rpm -qa --last | grep "openwbem\|iprint\|apache"'
+	plugin_command 'rpm -qa --last | grep "openwbem\|iprint\|apache"'	
 	
-	plugin_message "#==[ Command ]======================================#"
-	UID_NAME=$(echo $EDIR_USERNAME | cut -d. -f1)
-	plugin_message "# iprintman psm -l -u $UID_NAME"
-	iprintman psm -l -u $UID_NAME -P $EDIR_PASSWORD --accept-cert
-	plugin_message 
-
+	UID_NAME=$(echo $EDIR_USERNAME | cut -d. -f1)	
+	plugin_tag "$COMM_LABEL" "iprintman psm -l -u $UID_NAME"	
+	iprintman psm -l -u $UID_NAME -P $EDIR_PASSWORD --accept-cert 	
+	
 	plugin_command "ps -eaf | egrep 'iprint'"
 	plugin_command "ps -eaf | egrep 'owcimomd'"
 	plugin_command "/etc/init.d/owcimomd status"
