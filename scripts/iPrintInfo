@@ -1,7 +1,7 @@
 #!/bin/bash
 
 clear
-SVER=2.0
+SVER=2.0.0
 CONF_DIR="/etc/opt/novell/iprint-plugin"
 CONF_FILE="${CONF_DIR}/iprint-plugin.conf"
 OPT_AUTH_PERSISTENT=0
@@ -107,7 +107,7 @@ gatherInfo ()
 			BACKLINE_FILE="`pwd`/`uname -n`-${CURRENT_SCRIPT}-${SVER}`date +-%Y-%m%d-%H%M`.txt"
 		fi		
 		printf "Gathering iPrint Information... "
-		/opt/supportconfig/plugins/iPrint &> $BACKLINE_FILE
+		/usr/lib/supportconfig/plugins/iPrint &> $BACKLINE_FILE
 		echo Done
 		echo		
 		echo "Log File Can Be Found At: $BACKLINE_FILE"
