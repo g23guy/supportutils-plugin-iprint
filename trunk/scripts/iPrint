@@ -7,10 +7,10 @@
 #              Jeremy Meldrum (jmeldrum@novell.com)
 #              Jason Record (jrecord@novell.com)
 #                (Initial supportconfig plugin port)
-# Modified:    2010 Oct 14
+# Modified:    2010 Oct 25
 #############################################################
 
-SVER=2.0.0
+SVER=2.0.0-4
 RCFILE="/usr/lib/supportconfig/resources/scplugin.rc"
 PGCONF="/etc/opt/novell/iprint-plugin/iprint-plugin.conf"
 LOG_LINES=200	#0 means include the entire file
@@ -23,7 +23,7 @@ section_header "Supportconfig Plugin for iPrint, v${SVER}"
 
 if [ -z "$EDIR_USERNAME" ]; then
 	plugin_tag "WARNING" "Run iPrintInfo -h for additional information"
-	echo "Secure commands will not be performed"
+	plugin_message "Secure commands will not be performed"; echo
 fi
 
 declare -a rpmArray
@@ -52,22 +52,30 @@ nam_conf_server=""
 ###################################################
 PackageValidation ()
 {
-	section_header "************* Section #1 RPM Validation *************"
+	plugin_tag "Section #1" "RPM Validation"
 	echo "RPM Verify Key:"
 	
 	echo "Summary: Each of the 8 characters denotes the result of a comparison of attribute(s) of the file to the value of those attribute(s) recorded in the database."
-	echo "A single "." (period) means the test passed, while a single "?" (question mark) indicates the test could not be performed (e.g. file permissions prevent reading)." 
-	echo "Otherwise, the (mnemonically emBoldened) character denotes failure of the corresponding --verify test:"
-	echo ""
-	echo "S -- file Size differs"
-	echo "M -- Mode differs (includes permissions and file type)"
-	echo "5 -- MD5 sum differs"
-	echo "D -- Device major/minor number mismatch"
-	echo "L -- readlink(2) path mismatch"
-	echo "U -- User ownership differs"
-	echo "G -- Group ownership differs"
-	echo "T -- mTime differs"
-	
+	echo "The (mnemonically emBoldened) character denotes failure of the corresponding --verify test:"
+	echo
+	echo ". Test passed"
+	echo "? Test not performed"
+	echo "S file Size differs"
+	echo "M Mode differs (includes permissions and file type)"
+	echo "5 MD5 sum differs"
+	echo "D Device major/minor number mismatch"
+	echo "L readLink(2) path mismatch"
+	echo "U User ownership differs"
+	echo "G Group ownership differ"
+	echo "T mTime differs"
+	echo
+	echo "c configuration file"
+	echo "d documentation file"
+	echo "g ghost file (file content is not included in the package payload)"
+	echo "l license file"
+	echo "r readme file"
+	echo
+
 	for i in $rpmArray; do
 		validate_rpm $i
 	done
@@ -75,50 +83,49 @@ PackageValidation ()
 ###################################################
 ListRights ()
 {
-	section_header "************* Section #2 Rights Listings *************"
+	plugin_tag "Section #2" "Rights Listings"
 	for i in $rpmArray; do
 		plugin_tag "RPM Check" "$i"
-		rpm -ql $i | xargs -d '\n' ls -ld
-		#plugin_command "rpm -ql $i | xargs -d '\n' ls -ld"
+		rpm -ql $i | xargs -d '\n' ls -ld; echo
 	done
 }
 ###################################################
 #This function lists the rights of directories specific to iprint.
 ListRightsStatic ()
 {
-	section_header "************* Section #3 Static Directories *************"
+	plugin_tag "Section #3" "Static Directories"
 	pathsToList="/var/opt/novell/iprint/ /etc/opt/novell/iprint/conf/ /var/opt/novell/run/iprint/ /opt/novell/iprint/bin/ /etc/opt/novell/iprint/httpd/conf/ "
 	for pathVar in $pathsToList
 	do
 		plugin_tag "$RIGHTS_LABEL" "$pathVar"
-		ls -al $pathVar;echo ""
-		ls -aln $pathVar;echo ""
+		ls -al $pathVar; echo
+		ls -aln $pathVar; echo
 	done
 
 	pathsToList="/var/opt/novell/iprint/mod_ipp/ /var/opt/novell/iprint/htdocs/"	
 	for pathVar in $pathsToList
 	do
 		plugin_tag "$RIGHTS_LABEL" "$pathVar"	
-		ls -Rl $pathVar;echo ""
+		ls -Rl $pathVar; echo
 	done
 
 	pathsToList="/var/opt/novell/log/iprint/ /var/opt/novell/iprint/resdir/ "	
 	for pathVar in $pathsToList
 	do
 		plugin_tag "$RIGHTS_LABEL" "$pathVar"
-		ls -alh $pathVar;echo ""
+		ls -alh $pathVar; echo
 	done
 
 	managerName=` ls -al /etc/opt/novell/iprint/conf/ipsmd.conf | cut -d/ -f13 | sed 's/.ipsmd.conf//'`
 	plugin_tag "$RIGHTS_LABEL" "/var/opt/novell/iprint/$managerName.psm"
-	ls -al /var/opt/novell/iprint/"$managerName.psm";echo ""
+	ls -al /var/opt/novell/iprint/"$managerName.psm"; echo
 	
 	pathsToList="driver_mac-os-x_noarch_en driver_windows-95_x86-32_en driver_windows-nt-4_x86-32_en driver_windows-nt-5.1_x86-32_en driver_windows-nt-5_x86-32_en driver_windows-nt-6_x86-32_en driver_windows-nt-6_x86-64_en"
 	for pathVar in $pathsToList
 	do
 		if [ -d /var/opt/novell/iprint/resdir/${pathVar} ]; then
 			plugin_tag "$RIGHTS_LABEL" "/var/opt/novell/iprint/resdir/${pathVar}"
-			ls -al /var/opt/novell/iprint/resdir/${pathVar};echo ""
+			ls -al /var/opt/novell/iprint/resdir/${pathVar}; echo
 		fi
 	done
 
@@ -126,10 +133,10 @@ ListRightsStatic ()
 	#NSS Rights listing
 	if [ -h "/var/opt/novell/iprint" ]; then
 		plugin_tag "$RIGHTS_LABEL" "rights show -f /var/opt/novell/log/iprint"
-		rights show -f /var/opt/novell/log/iprint;echo ""
+		rights show -f /var/opt/novell/log/iprint; echo
 
 		plugin_tag "$RIGHTS_LABEL" "rights show -f /var/opt/novell/iprint"
-		rights show -f /var/opt/novell/iprint;echo ""
+		rights show -f /var/opt/novell/iprint; echo
 	fi
 
 }
@@ -137,13 +144,13 @@ ListRightsStatic ()
 ###################################################
 FileOutput ()
 {
-	section_header "************* Section #4 File Output *************"
+	plugin_tag "Section #4" "File Output"
 	
 	plugin_tag "Configuration File" "/etc/opt/novell/iprint/conf/idsd.conf"
-	sed -e '/^IDSObjectPasswd/d' /etc/opt/novell/iprint/conf/idsd.conf;echo ""
+	sed -e '/^IDSObjectPasswd/d' /etc/opt/novell/iprint/conf/idsd.conf; echo
 	
 	plugin_tag "Configuration File" "/etc/opt/novell/iprint/conf/ipsmd.conf"
-	sed -e '/^PSMObjectPasswd/d' /etc/opt/novell/iprint/conf/ipsmd.conf;echo ""		
+	sed -e '/^PSMObjectPasswd/d' /etc/opt/novell/iprint/conf/ipsmd.conf; echo		
 
 	pconf_files "/etc/opt/novell/iprint/httpd/conf/iprint_g.conf /etc/opt/novell/iprint/httpd/conf/iprint_ssl.conf /var/opt/novell/iprint/htdocs/iprint.ini"
 
@@ -172,42 +179,34 @@ FileOutput ()
 	#	fi
 	#done
 	#pconf_files $SCRIPTS
-	pconf_files "/etc/nam.conf /etc/novell-release /etc/SuSE-release /etc/hosts /etc/passwd /etc/group /etc/openwbem/openwbem.conf /etc/apache2/httpd.conf /etc/sysconfig/apache2 /etc/sysconfig/proxy /etc/permissions.d/iprint"
+	pconf_files "/etc/nam.conf /etc/novell-release /etc/SuSE-release /etc/hosts /etc/passwd /etc/group /etc/openwbem/openwbem.conf /etc/apache2/httpd.conf /etc/apache2/vhosts.d/vhost-ssl.conf /etc/sysconfig/apache2 /etc/sysconfig/proxy /etc/permissions.d/iprint"
 }
 
 ###################################################
 ndsOutput ()
 {
 
-	section_header "************* Section #5 eDirectory and Cert Information *************"
+	plugin_tag "Section #5" "eDirectory and Cert Information"
 	plugin_tag "$EDIR_LABEL" "ndsstat -r"
-	ndsstat -r;echo ""
+	ndsstat -r; echo
 	
 	plugin_tag "$EDIR_LABEL" "ndsrepair -T"
-	ndsrepair -T;echo ""
+	ndsrepair -T; echo
 	
 	plugin_tag "$EDIR_LABEL" "ndsrepair -E"
-	ndsrepair -E;echo ""
+	ndsrepair -E; echo
 	
 	if [ -n "$EDIR_USERNAME" ]; then
-		plugin_message "#==[ $EDIR_LABEL ]======================================#"
-		plugin_message "# ldapconfig get -p localhost -a $EDIR_USERNAME "
-		ldapconfig get -p localhost -a $EDIR_USERNAME -w $EDIR_PASSWORD
-		plugin_message 
+		plugin_tag "$EDIR_LABEL" "ldapconfig get -p localhost -a $EDIR_USERNAME"
+		ldapconfig get -p localhost -a $EDIR_USERNAME -w $EDIR_PASSWORD; echo
 
-		plugin_message "#==[ $EDIR_LABEL ]======================================#"
-		plugin_message "# ldapconfig get -p $iprint_ssl_URL -a $EDIR_USERNAME"
-		ldapconfig get -p $iprint_ssl_URL -a $EDIR_USERNAME -w $EDIR_PASSWORD
-		plugin_message 
+		plugin_tag "$EDIR_LABEL" "ldapconfig get -p $iprint_ssl_URL -a $EDIR_USERNAME"
+		ldapconfig get -p $iprint_ssl_URL -a $EDIR_USERNAME -w $EDIR_PASSWORD; echo
 
-		plugin_message "#==[ $EDIR_LABEL ]======================================#"
-		plugin_message "# ldapconfig get -p $nam_conf_server -a $EDIR_USERNAME"
-		ldapconfig get -p $nam_conf_server -a $EDIR_USERNAME -w $EDIR_PASSWORD
-		plugin_message
+		plugin_tag "$EDIR_LABEL" "ldapconfig get -p $nam_conf_server -a $EDIR_USERNAME"
+		ldapconfig get -p $nam_conf_server -a $EDIR_USERNAME -w $EDIR_PASSWORD; echo
 	else
-		plugin_message "#==[ $EDIR_LABEL ]======================================#"
-		plugin_message "# Run iPrintInfo for additional LDAP information"
-		plugin_message
+		plugin_tag "$EDIR_LABEL" "Run iPrintInfo for additional LDAP information"
 	fi
 
 	if [ -n "$EDIR_LDAP_FQN" ]; then
@@ -236,17 +235,16 @@ ndsOutput ()
 	for pathVar in $pathsToList
 	do
 		plugin_tag "$EDIR_LABEL" "ls -al $pathVar"
-		
-		ls -al $pathVar;echo ""
+		ls -al $pathVar; echo
 	done
 
 	if certtool -i --inder --infile /etc/opt/novell/certs/SSCert.der &>/dev/null; then
 		plugin_tag "$EDIR_LABEL" "certtool -i --inder --infile /etc/opt/novell/certs/SSCert.der"
-		certtool -i --inder --infile /etc/opt/novell/certs/SSCert.der | sed "/Subject:/,/modulus:/!d";echo ""
+		certtool -i --inder --infile /etc/opt/novell/certs/SSCert.der | sed "/Subject:/,/modulus:/!d"; echo
 		
 	else
 		plugin_tag "$EDIR_LABEL" "certtool -i --inder --infile /etc/opt/novell/certs/SSCert.der"
-		certtool -i --inder --infile /etc/opt/novell/certs/SSCert.der;echo ""
+		certtool -i --inder --infile /etc/opt/novell/certs/SSCert.der; echo
 	fi
 		
 	CERTS="/etc/opt/novell/certs/SSCert.pem /etc/ssl/servercerts/servercert.pem"
@@ -254,10 +252,10 @@ ndsOutput ()
 	do
 		if certtool -i --infile $certFile &>/dev/null; then
 			plugin_tag "$EDIR_LABEL" "certtool -i --infile $certFile"
-			certtool -i --infile $certFile | sed "/Subject:/,/modulus:/!d";echo ""
+			certtool -i --infile $certFile | sed "/Subject:/,/modulus:/!d"; echo
 		else
 			plugin_tag "$EDIR_LABEL" "certtool -i --infile $certFile"
-			"certtool -i --infile $certFile";echo ""
+			"certtool -i --infile $certFile"; echo
 		fi
 	done
 
@@ -265,18 +263,22 @@ ndsOutput ()
 
 	#Checks the connection to the SSCert.pem file through openssl
 	plugin_tag "$EDIR_LABEL" "echo -n | SSL_CERT=/no_dir openssl s_client -connect localhost:636 -CAfile /etc/opt/novell/certs/SSCert.pem -verify 255"
-	echo -n | SSL_CERT=/no_dir openssl s_client -connect localhost:636 -CAfile /etc/opt/novell/certs/SSCert.pem -verify 255 | sed '/-----BEGIN CERTIFICATE-----/,/-----END CERTIFICATE-----/d';echo ""
+	echo -n | SSL_CERT=/no_dir openssl s_client -connect localhost:636 -CAfile /etc/opt/novell/certs/SSCert.pem -verify 255 | sed '/-----BEGIN CERTIFICATE-----/,/-----END CERTIFICATE-----/d'; echo
 }
 
 ###################################################
 MiscCommands ()
 {
-	section_header "************* Section #6 Miscellaneous Commands *************"
+	plugin_tag "Section #6" "Miscellaneous Commands"
 	plugin_command 'rpm -qa --last | grep "openwbem\|iprint\|apache"'	
 	
-	UID_NAME=$(echo $EDIR_USERNAME | cut -d. -f1)	
-	plugin_tag "$COMM_LABEL" "iprintman psm -l -u $UID_NAME"	
-	iprintman psm -l -u $UID_NAME -P $EDIR_PASSWORD --accept-cert 	
+	if [ -n "$EDIR_USERNAME" ]; then
+		UID_NAME=$(echo $EDIR_USERNAME | cut -d. -f1)	
+		plugin_tag "$COMM_LABEL" "iprintman psm -l -u $UID_NAME"	
+		iprintman psm -l -u $UID_NAME -P $EDIR_PASSWORD --accept-cert; echo
+	else
+		plugin_tag "$EDIR_LABEL" "Run iPrintInfo for additional iprintman information"
+	fi
 	
 	plugin_command "ps -eaf | egrep 'iprint'"
 	plugin_command "ps -eaf | egrep 'owcimomd'"
@@ -289,7 +291,7 @@ MiscCommands ()
 	plugin_command "uptime"
 	
 	plugin_tag "$COMM_LABEL" "ifconfig | grep 'inet addr'"
-	ifconfig | grep "inet addr" | sed "s/^[ \t]*//";echo ""
+	ifconfig | grep "inet addr" | sed "s/^[ \t]*//"; echo
 
 	eName=`echo $EDIR_USERNAME | cut -d. -f1` 
 	#echo $eName
@@ -328,14 +330,14 @@ displayXML ()
 
 	if [ -e /opt/novell/iprint/bin/psmimport.xml ]; then
 		plugin_tag "$XML_LABEL" "/opt/novell/iprint/bin/psmimport.xml"
-		cat /opt/novell/iprint/bin/psmimport.xml
+		cat /opt/novell/iprint/bin/psmimport.xml; echo
 	else
 		plugin_tag "$XML_LABEL" "/opt/novell/iprint/bin/psmimport.xml - File Not Found"
 	
 	fi
 	
 	plugin_tag "$XML_LABEL" "/var/opt/novell/iprint/$managerName.psm/padbtxt.xml"
-	cat "/var/opt/novell/iprint/$managerName.psm/padbtxt.xml"	
+	cat "/var/opt/novell/iprint/$managerName.psm/padbtxt.xml"; echo
 
 }
 
@@ -344,7 +346,7 @@ displayXML ()
 ###################################################
 LogOutput ()
 {
-	section_header "************* Section #7 Log Output Files *************"
+	plugin_tag "Section #7" "Log Output Files"
 	#echo $managerName
 	#managerName2=`echo $managerName | sed "s/[[:space:]]/\\ /g"`
 	#echo $managerName2	
@@ -356,10 +358,10 @@ LogOutput ()
 	
 	plog_files $LOG_LINES "/var/log/apache2/error_log"
 	plog_files $LOG_LINES2 "/var/log/apache2/access_log /var/lib/novell-lum/nam.log"
-	plog_files $LOG_LINES2/var/opt/novell/log/iprint/iprintgw.log
+	plog_files $LOG_LINES2 "/var/opt/novell/log/iprint/iprintgw.log"
 	
 	plugin_tag "$LOG_LABEL" "/var/opt/novell/iprint/$managerName.psm/ndpsmmon.log - Last $LOG_LINES2 Lines"	
-	tail -$LOG_LINES "/var/opt/novell/iprint/$managerName.psm/ndpsmmon.log"
+	tail -$LOG_LINES "/var/opt/novell/iprint/$managerName.psm/ndpsmmon.log"; echo
 	
 	if [ -e "/var/opt/novell/log/iprint_nss_relocate1.log" ]; then
 		plog_files $LOG_LINES "/var/opt/novell/log/iprint_nss_relocate.log"	
@@ -422,5 +424,4 @@ execCalls ()
 
 	
 execCalls
-
 
