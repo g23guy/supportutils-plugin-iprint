@@ -15,7 +15,7 @@ License:      GPLv2
 Group:        Documentation/SuSE
 Autoreqprov:  on
 Version:      1.0
-Release:      DEV.20101014.1
+Release:      DEV.20101025.1
 Source:       %{name}-%{version}.tar.gz
 Summary:      Supportconfig Plugin for Novell iPrint
 BuildRoot:    %{_tmppath}/%{name}-%{version}-build
@@ -23,6 +23,7 @@ BuildArch:    noarch
 Distribution: Novell NTS
 Vendor:       Novell Technical Services
 Requires:     supportconfig-plugin-resource
+Requires:     supportconfig-plugin-tag
 
 %description
 Extends supportconfig functionality to include system information about 
@@ -55,6 +56,8 @@ install -m 0644 iprint-plugin.8.gz $RPM_BUILD_ROOT/usr/share/man/man8/iprint-plu
 
 %files
 %defattr(-,root,root)
+/usr/lib/supportconfig
+/usr/lib/supportconfig/plugins
 /usr/lib/supportconfig/plugins/*
 /sbin/iPrintInfo
 %attr(700,root,root) /etc/opt/novell/iprint-plugin
