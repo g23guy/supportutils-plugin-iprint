@@ -1,7 +1,7 @@
 #!/bin/bash
 
 clear
-SVER=2.0.0-3
+SVER=2.0.0-4
 CONF_DIR="/etc/opt/novell/iprint-plugin"
 CONF_FILE="${CONF_DIR}/iprint-plugin.conf"
 OPT_AUTH_PERSISTENT=0
@@ -36,32 +36,27 @@ getCredentials ()
 	RCODE=1
 	while [ $RCODE -gt 0 ]
 	do
-		printf "Enter LDAP search base (ie o=Novell): "
+		printf "%-40s " "Enter LDAP search base (ie o=Novell): "
 		read EDIR_SEARCH_BASE
 		if [ -z "$EDIR_SEARCH_BASE" ]; then
 			echo "ERROR: Empty LDAP search base"
 		else
 			RCODE=0
 		fi
-		echo
 	done
 
 	#RCODE=1
 	#while [ $RCODE -gt 0 ]
 	#do
-	printf "Enter your FQN in dot notation (ie admin.novell): "
+	printf "%-40s " "FQN in dot notation (ie admin.novell):"
 	read EDIR_USERNAME
-	echo
-	printf "Enter the $EDIR_USERNAME Password: "
+	printf "%-40s " "Enter the $EDIR_USERNAME Password:"
 	read -s EDIR_PASSWORD
-	echo
 	ndslogin -p $EDIR_PASSWORD $EDIR_USERNAME
 	RCODE=$?
 	echo
 	if [ $RCODE -gt 0 ]; then
 		#echo "ERROR: ndslogin Failed for username $EDIR_USERNAME"
-		echo
-			
 		tmplength=$(echo $EDIR_USERNAME | tr -dc '.' | wc -c )
 		context_length=`expr $tmplength + 1`	
 		cName=$(echo $EDIR_USERNAME | cut -d. -f1 )
@@ -69,10 +64,10 @@ getCredentials ()
 		
 		#concatenates  the FQN together		
 		if [ $tmplength = "1" ]; then 	    
-		    EDIR_LDAP_FQN="cn=${cName},o=${orgName}"
+			EDIR_LDAP_FQN="cn=${cName},o=${orgName}"
 		else
-	        ouName=$(echo $EDIR_USERNAME | cut -d. -f2-$tmplength | sed 's/\./,ou\=/g')		    
-	        EDIR_LDAP_FQN="cn=${cName},ou=${ouName},o=${orgName}" 	    
+	        	ouName=$(echo $EDIR_USERNAME | cut -d. -f2-$tmplength | sed 's/\./,ou\=/g')		    
+	        	EDIR_LDAP_FQN="cn=${cName},ou=${ouName},o=${orgName}" 	    
 		fi				
 	else
 		
@@ -92,7 +87,6 @@ getCredentials ()
 	chown -R root.root $CONF_DIR
 	echo "Supportconfig Plugin for iPrint Configured"
 	#done
-echo
 }
 
 gatherInfo ()
@@ -103,13 +97,11 @@ gatherInfo ()
 		else
 			BACKLINE_FILE="`pwd`/`uname -n`-${CURRENT_SCRIPT}-${SVER}`date +-%Y-%m%d-%H%M`.txt"
 		fi		
-		printf "Gathering iPrint Information... "
+		printf "%-40s " "Gathering iPrint Information:"
 		/usr/lib/supportconfig/plugins/iPrint &> $BACKLINE_FILE
 		sed -i -e "/iPrint.*Aborted.*iprintman/d" $BACKLINE_FILE
 		echo Done
-		echo		
-		echo "Log File Can Be Found At: $BACKLINE_FILE"
-		echo		
+		printf "%-40s %s\n\n" "iPrint Info File:" $BACKLINE_FILE
 	else
 		if [ $SRNUM -gt 0 ]; then
 			supportconfig -ur $SRNUM
@@ -156,11 +148,20 @@ do
 	esac
 done
 
+if [ $SRNUM -gt 0 ]; then
+	printf "%-40s %s\n" "Service Request Number:" "$SRNUM"
+else
+	printf "%-40s %s\n" "Service Request Number:" "Missing, use -r"
+fi
 if [ "$AUTH_PERSISTENT" = "true" ]; then
-	echo "Authentication Credentials: Persistent"
+	printf "%-40s %s\n" "Authentication Credentials:" "Persistent"
 	gatherInfo
 else
-	echo "Authentication Credentials: Single Use"
+	if [ $OPT_AUTH_PERSISTENT -eq 1 ]; then
+		printf "%-40s %s\n" "Authentication Credentials:" "Setting Persistent"
+	else
+		printf "%-40s %s\n" "Authentication Credentials:" "Single Use"
+	fi
 	getCredentials
 	gatherInfo
 fi
