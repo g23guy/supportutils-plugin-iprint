@@ -7,10 +7,10 @@
 #              Jeremy Meldrum (jmeldrum@novell.com)
 #              Jason Record (jrecord@novell.com)
 #                (Initial supportconfig plugin port)
-# Modified:    2010 Oct 25
+# Modified:    2010 Oct 29
 #############################################################
 
-SVER=2.0.0-4
+SVER=2.0.0-5
 RCFILE="/usr/lib/supportconfig/resources/scplugin.rc"
 PGCONF="/etc/opt/novell/iprint-plugin/iprint-plugin.conf"
 LOG_LINES=200	#0 means include the entire file
@@ -20,6 +20,15 @@ LOG_LINES2=100
 [ -s $PGCONF ] && . $PGCONF || { echo "ERROR: Initializing configuration file: $PGCONF"; exit 2; }
 
 section_header "Supportconfig Plugin for iPrint, v${SVER}"
+plugin_message "Section 1: RPM Validation"
+plugin_message "Section 2: Rights Listing"
+plugin_message "Section 3: Static Directories"
+plugin_message "Section 4: File Output"
+plugin_message "Section 5: eDirectory and Certificate Information"
+plugin_message "Section 6: Miscellaneous Commands"
+plugin_message "Section 7: Log Output Files"
+plugin_message
+
 
 if [ -z "$EDIR_USERNAME" ]; then
 	plugin_tag "WARNING" "Run iPrintInfo -h for additional information"
