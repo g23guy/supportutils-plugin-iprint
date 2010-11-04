@@ -1,6 +1,8 @@
 -------------------------------------------------------------------
-Thu Oct 29 12:35:30 MDT 2010 - jrecord@novell.com 
+Thu Nov  4 10:48:36 MDT 2010 - jrecord@novell.com
 
 -added requires supportconfig-plugin-tag
 -included 1.16 additions
 -initial iPrintInfo.sh port
+-iPrint: 
+-iPrintInfo: 

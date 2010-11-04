@@ -1,7 +1,17 @@
 #!/bin/bash
+#############################################################
+# Name:        Supportconfig Plugin for iPrint Launcher
+# Description: Prompts for credentials and launches the iPrint
+#              plugin
+# License:     GPLv2
+# Authors/Contributors:
+#              Jeremy Meldrum (jmeldrum@novell.com)
+#              Jason Record (jrecord@novell.com)
+# Modified:    2010 Nov 04
+#############################################################
 
 clear
-SVER=2.0.0-4
+SVER=2.0.1
 CONF_DIR="/etc/opt/novell/iprint-plugin"
 CONF_FILE="${CONF_DIR}/iprint-plugin.conf"
 OPT_AUTH_PERSISTENT=0
@@ -20,11 +30,13 @@ title ()
 
 show_help() 
 {
-	echo "Usage: $CURRENT_SCRIPT [-pb][-r SR_Number]"
+	echo "Usage: $CURRENT_SCRIPT [-bhpP][-r SR_Number]"
+	echo " -h   This screen"
+	echo " -b   Use backline mode"
 	echo " -P   Set persistent eDirectory credentials"
 	echo " -p   Clear previously set persistent eDirectory credentials"
-	echo " -b   Use backline mode"
-	echo " -r <srnum> Supply your current SR number"
+	echo " -r int" 
+	echo "      Includes your current 11 digit service request number"
 	echo
 }
 
@@ -122,6 +134,7 @@ if [ $CURRENTUID -ne 0 ]; then
 	echo "ERROR: You must be logged in as root."
 	echo "       $(id)"
 	echo
+	show_help
 	exit 3
 fi
 
