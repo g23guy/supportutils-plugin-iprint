@@ -15,7 +15,7 @@ License:      GPLv2
 Group:        Documentation/SuSE
 Autoreqprov:  on
 Version:      1.0
-Release:      1
+Release:      2
 Source:       %{name}-%{version}.tar.gz
 Summary:      Supportconfig Plugin for Novell iPrint
 BuildRoot:    %{_tmppath}/%{name}-%{version}-build
@@ -41,6 +41,7 @@ Authors:
 %setup -q
 %build
 gzip -9f iprint-plugin.8
+gzip -9f iPrintInfo.8
 
 %install
 pwd;ls -la
@@ -53,6 +54,7 @@ install -m 0544 iPrint $RPM_BUILD_ROOT/usr/lib/supportconfig/plugins
 install -m 0544 iPrintInfo $RPM_BUILD_ROOT/sbin
 install -m 0600 iprint-plugin.conf $RPM_BUILD_ROOT/etc/opt/novell/iprint-plugin
 install -m 0644 iprint-plugin.8.gz $RPM_BUILD_ROOT/usr/share/man/man8/iprint-plugin.8.gz
+install -m 0644 iPrintInfo.8.gz $RPM_BUILD_ROOT/usr/share/man/man8/iPrintInfo.8.gz
 
 %files
 %defattr(-,root,root)
@@ -64,6 +66,7 @@ install -m 0644 iprint-plugin.8.gz $RPM_BUILD_ROOT/usr/share/man/man8/iprint-plu
 %attr(700,root,root) /etc/opt/novell/iprint-plugin
 %verify(mode) %attr(600,root,root) %config /etc/opt/novell/iprint-plugin/iprint-plugin.conf
 /usr/share/man/man8/iprint-plugin.8.gz
+/usr/share/man/man8/iPrintInfo.8.gz
 
 %clean
 rm -rf $RPM_BUILD_ROOT
