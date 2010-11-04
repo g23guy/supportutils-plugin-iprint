@@ -96,10 +96,22 @@ commit: build
 	svn ci -m "Committed to OBS: $(OBSPACKAGE)-$(VERSION)-$(RELEASE)"
 	@echo
 
+obsetup: 
+	@echo ==================================================================
+	@echo Setup OBS Novell:NTS/$(OBSPACKAGE)
+	@echo ==================================================================
+	@rm -rf Novell:NTS
+	osc co Novell:NTS/$(OBSPACKAGE)
+	@rm -f Novell:NTS/$(OBSPACKAGE)/*
+	cp specs/$(OBSPACKAGE).spec Novell:NTS/$(OBSPACKAGE)
+	cp specs/$(OBSPACKAGE).changes Novell:NTS/$(OBSPACKAGE)
+	cp src/$(SRCFILE).gz Novell:NTS/$(OBSPACKAGE)
+	osc status Novell:NTS/$(OBSPACKAGE)
+
 help:
 	@clear
 	@make -v
 	@echo
 	@echo Make options for package: $(OBSPACKAGE)
-	@echo make {install, uninstall, dist, clean, build[default], buildci, commit}
+	@echo make {install, uninstall, dist, clean, build[default], buildci, obsetup, commit}
 	@echo
