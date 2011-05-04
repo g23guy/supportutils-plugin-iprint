@@ -11,7 +11,7 @@
 #############################################################
 
 clear
-SVER=2.0.1
+SVER=2.1.0
 CONF_DIR="/etc/opt/novell/iprint-plugin"
 CONF_FILE="${CONF_DIR}/iprint-plugin.conf"
 OPT_AUTH_PERSISTENT=0
@@ -46,20 +46,17 @@ getCredentials ()
 		AUTH_PERSISTENT="true"
 	fi
 	RCODE=1
-	while [ $RCODE -gt 0 ]
+	EDIR_SEARCH_BASE=$(cat /etc/nam.conf | grep -i base-name | cut -d= -f2-)
+	echo "Thi is the edir search base: $EDIR_SEARCH_BASE"
+	while [ -z "$EDIR_SEARCH_BASE" ]
 	do
 		printf "%-40s " "Enter LDAP search base (ie o=Novell): "
 		read EDIR_SEARCH_BASE
 		if [ -z "$EDIR_SEARCH_BASE" ]; then
 			echo "ERROR: Empty LDAP search base"
-		else
-			RCODE=0
 		fi
 	done
 
-	#RCODE=1
-	#while [ $RCODE -gt 0 ]
-	#do
 	printf "%-40s " "FQN in dot notation (ie admin.novell):"
 	read EDIR_USERNAME
 	printf "%-40s " "Enter the $EDIR_USERNAME Password:"

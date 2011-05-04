@@ -7,10 +7,10 @@
 #              Jeremy Meldrum (jmeldrum@novell.com)
 #              Jason Record (jrecord@novell.com)
 #                (Initial supportconfig plugin port)
-# Modified:    2010 Nov 04
+# Modified:    2011 May 4 2011
 #############################################################
-
-SVER=2.0.1
+${nam_conf_server}:nam.conf
+SVER=2.1.0
 RCFILE="/usr/lib/supportconfig/resources/scplugin.rc"
 PGCONF="/etc/opt/novell/iprint-plugin/iprint-plugin.conf"
 LOG_LINES=200	#0 means include the entire file
@@ -220,7 +220,7 @@ ndsOutput ()
 
 	if [ -n "$EDIR_LDAP_FQN" ]; then
 		#Doing an ldapsearch and bind using SSCert.pem
-		for VAL_CONF in ${iprint_ssl_URL}:iprint_ssl.conf localhost:localhost ${nam_conf_server}:nam.conf ${ipsmd_conf_dsserver1}:ipsmd.conf
+		for VAL_CONF in ${iprint_ssl_URL}:iprint_ssl.conf localhost:localhost  ${ipsmd_conf_dsserver1}:ipsmd.conf
 		do
 			SRV_URL=$(echo $VAL_CONF | cut -d: -f1)
 			SRV_CNF=$(echo $VAL_CONF | cut -d: -f2)
@@ -229,8 +229,8 @@ ndsOutput ()
 			if [ -z "$tmpSrvName" ]; then
 				plugin_message "# ndsstat failed using command: ndsstat -h $SRV_URL"
 			else
-				plugin_message "# (From $SRV_CNF) /opt/novell/eDirectory/bin/ldapsearch -h $SRV_URL -p 636 -D $EDIR_LDAP_FQN -W -b $EDIR_SEARCH_BASE -e /etc/opt/novell/certs/SSCert.der \"cn= SSL CertificateDNS - $tmpSrvName\""
-				/opt/novell/eDirectory/bin/ldapsearch -h $SRV_URL -p 636 -D $EDIR_LDAP_FQN -w $EDIR_PASSWORD -b $EDIR_SEARCH_BASE -e /etc/opt/novell/certs/SSCert.der "cn= SSL CertificateDNS - $tmpSrvName" | sed '/nDSPKICertificateChain:/,/objectClass:/d'
+				plugin_message "# (From $SRV_CNF) /opt/novell/eDirectory/bin/ldapsearch -h $SRV_URL -p 636 -D $EDIR_LDAP_FQN -W -e /etc/opt/novell/certs/SSCert.der \"cn= SSL CertificateDNS - $tmpSrvName\""
+				/opt/novell/eDirectory/bin/ldapsearch -h $SRV_URL -p 636 -D $EDIR_LDAP_FQN -w $EDIR_PASSWORD -e /etc/opt/novell/certs/SSCert.der "cn= SSL CertificateDNS - $tmpSrvName" | sed '/nDSPKICertificateChain:/,/objectClass:/d'
 			fi
 			plugin_message
 		done
