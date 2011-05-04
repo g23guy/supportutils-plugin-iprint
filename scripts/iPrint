@@ -20,13 +20,13 @@ LOG_LINES2=100
 [ -s $PGCONF ] && . $PGCONF || { echo "ERROR: Initializing configuration file: $PGCONF"; exit 2; }
 
 section_header "Supportconfig Plugin for iPrint, v${SVER}"
-plugin_message "Section 1: RPM Validation"
-plugin_message "Section 2: Rights Listing"
-plugin_message "Section 3: Static Directories"
-plugin_message "Section 4: File Output"
-plugin_message "Section 5: eDirectory and Certificate Information"
-plugin_message "Section 6: Miscellaneous Commands"
-plugin_message "Section 7: Log Output Files"
+plugin_message "Section #1: RPM Validation"
+plugin_message "Section #2: Rights Listing"
+plugin_message "Section #3: Static Directories"
+plugin_message "Section #4: File Output"
+plugin_message "Section #5: eDirectory and Certificate Information"
+plugin_message "Section #6: Miscellaneous Commands"
+plugin_message "Section #7: Log Output Files"
 plugin_message
 
 
@@ -291,11 +291,13 @@ MiscCommands ()
 	
 	plugin_command "ps -eaf | egrep 'iprint'"
 	plugin_command "ps -eaf | egrep 'owcimomd'"
+	plugin_command "ps -eaf | egrep 'apache2'"
 	plugin_command "/etc/init.d/owcimomd status"
 	plugin_command "chkconfig -l cups"
 	plugin_command "chkconfig -l novell-ipsmd"
 	plugin_command "/etc/init.d/cups status"
 	plugin_command "/etc/init.d/novell-ipsmd status"
+	plugin_command "/etc/init.d/apache2 status"
 	plugin_command "uname -a"
 	plugin_command "uptime"
 	
