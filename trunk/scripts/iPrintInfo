@@ -47,7 +47,8 @@ getCredentials ()
 	fi
 	RCODE=1
 	EDIR_SEARCH_BASE=$(cat /etc/nam.conf | grep -i base-name | cut -d= -f2-)
-	echo "Thi is the edir search base: $EDIR_SEARCH_BASE"
+	printf "%-40s " "eDirectory search base:"
+	printf "$EDIR_SEARCH_BASE\n"
 	while [ -z "$EDIR_SEARCH_BASE" ]
 	do
 		printf "%-40s " "Enter LDAP search base (ie o=Novell): "
