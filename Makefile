@@ -102,10 +102,6 @@ obsetup:
 	@echo ==================================================================
 	@rm -rf Novell:NTS
 	osc co Novell:NTS/$(OBSPACKAGE)
-	@rm -f Novell:NTS/$(OBSPACKAGE)/*
-	cp specs/$(OBSPACKAGE).spec Novell:NTS/$(OBSPACKAGE)
-	cp specs/$(OBSPACKAGE).changes Novell:NTS/$(OBSPACKAGE)
-	cp src/$(SRCFILE).gz Novell:NTS/$(OBSPACKAGE)
 	osc status Novell:NTS/$(OBSPACKAGE)
 
 help:
