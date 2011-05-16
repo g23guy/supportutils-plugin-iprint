@@ -55,6 +55,7 @@ XML_LABEL="XML File"
 #Stores the server DNS or IP address variables
 iprint_ssl_URL=""
 ipsmd_conf_dsserver1=""
+ipsmd_conf_psmhostaddress=""
 nam_conf_server=""
 
 
@@ -178,16 +179,6 @@ FileOutput ()
 		plugin_tag "Configuration File" "iPrint NSS Unload Script Does Not Exist"
         fi
 
-
-
-	#SCRIPTS=""
-	#for NCS_CHK_DIR in /var/run/ncs /var/opt/novell/log/ncs /etc/opt/novell/ncs /var/opt/novell/ncs
-	#do
-	#	if [ -d $NCS_CHK_DIR ]; then
-	#		SCRIPTS="$SCRIPTS $(find ${NCS_CHK_DIR}/ -type f -name \*load | grep -v '_Template' | sort)"
-	#	fi
-	#done
-	#pconf_files $SCRIPTS
 	pconf_files "/etc/nam.conf /etc/novell-release /etc/SuSE-release /etc/hosts /etc/passwd /etc/group /etc/openwbem/openwbem.conf /etc/apache2/httpd.conf /etc/apache2/vhosts.d/vhost-ssl.conf /etc/sysconfig/apache2 /etc/sysconfig/proxy /etc/permissions.d/iprint"
 }
 
@@ -300,12 +291,13 @@ MiscCommands ()
 	plugin_command "/etc/init.d/apache2 status"
 	plugin_command "uname -a"
 	plugin_command "uptime"
+	pingDNSNames
+	
 	
 	plugin_tag "$COMM_LABEL" "ifconfig | grep 'inet addr'"
 	ifconfig | grep "inet addr" | sed "s/^[ \t]*//"; echo
 
-	eName=`echo $EDIR_USERNAME | cut -d. -f1` 
-	#echo $eName
+	eName=`echo $EDIR_USERNAME | cut -d. -f1` 	
 	if [ -n "$eName" ]; then
 		if [ $eName == "admin" ]; then
 			plugin_command "id $eName"
@@ -320,11 +312,7 @@ MiscCommands ()
 	plugin_command "id iprint"
 	plugin_command "netstat -atnp | egrep \"636|389\" | grep -i listen"
 	plugin_command "netstat -atnp | grep httpd | grep -i listen"	
-	plugin_command "netcat -zv $iprint_ssl_URL 636 #from iprint_ssl.conf"
-	plugin_command "netcat -zv $nam_conf_server 636 #from nam.conf"
-	plugin_command "netcat -zv $ipsmd_conf_dsserver1 636 #from ipsmd.conf"
-	plugin_command "netcat -zv $ipsmd_conf_dsserver1 5989 #from ipsmd.conf"
-	plugin_command "netcat -zv $nam_conf_server 5989 #from nam.conf"
+	netcatUniqueNames
 	plugin_command "rcSuSEfirewall2 status"
 	plugin_command "df -h"
 	plugin_command "free -k"
@@ -335,7 +323,90 @@ MiscCommands ()
 	plugin_command "namuserlist -x $EDIR_SEARCH_BASE"
 	plugin_command "namgrouplist -x $EDIR_SEARCH_BASE"
 }
+###################################################
+isNumber()
+{
+#This identifies if the value is a digit or not.
+removedDotsVar=$(echo "$1" |sed "s/\.//g")
+  if expr $removedDotsVar + 1 &> /dev/null ; then
+    return 0
+  else
+    return 1
+  fi
+}
+###################################################
+pingDNSNames ()
+{
+#This for loop will read in each dns name or ip address and put them in a list
+for i in $iprint_ssl_URL $ipsmd_conf_dsserver1 $ipsmd_conf_psmhostaddress $nam_conf_server
+do	
+	list=$(printf "%s\n%s\n" $list $i)
+done
 
+uniqList=$(echo "$list" | sort | uniq)
+#This for loop will identify if they are IP adresses (is Digit) or dns names
+for i in $uniqList
+do	
+	fromFileNames=""
+	isNumber "$i"
+	returnCode=$?
+	#echo "returncode: $returnCode"
+	if [ $returnCode == "1" ]; then
+		#this for loop identifies what file or value contains that adress that is being pinged.
+		for j in ${iprint_ssl_URL}:iprint_ssl.conf ${ipsmd_conf_dsserver1}:DSServer1 $ipsmd_conf_psmhostaddress:PSMHostAddress $nam_conf_server:nam.conf
+		do 
+			dnsNameUrl=$(echo $j | cut -d: -f1)
+			fromFile=$(echo $j | cut -d: -f2)
+			if [ "$dnsNameUrl" == "$i" ]; then				
+				if [ -z $fromFileNames ]; then
+					fromFileNames=$fromFile
+				else
+					fromFileNames="${fromFileNames}, $fromFile"
+					#echo "fromFileNames:$fromFileNames"
+				fi
+			fi
+		done
+		plugin_command "ping -c2 $i #From $fromFileNames"
+	fi
+done
+}
+###################################################
+netcatUniqueNames ()
+{
+#This for loop will read in each dns name or ip address and put them in a list
+for i in $iprint_ssl_URL $ipsmd_conf_dsserver1 $ipsmd_conf_psmhostaddress $nam_conf_server
+do	
+	list=$(printf "%s\n%s\n" $list $i)
+done
+
+#this will create a unique list of values.
+uniqList=$(echo "$list" | sort | uniq)
+
+for i in $uniqList
+do	
+	fromFileNames=""
+	#this for loop identifies what file or value contains the address that is being used for netcat
+	for j in ${iprint_ssl_URL}:iprint_ssl.conf ${ipsmd_conf_dsserver1}:DSServer1 $ipsmd_conf_psmhostaddress:PSMHostAddress $nam_conf_server:nam.conf
+	do 
+		dnsNameUrl=$(echo $j | cut -d: -f1)
+		fromFile=$(echo $j | cut -d: -f2)
+		if [ "$dnsNameUrl" == "$i" ]; then				
+			if [ -z $fromFileNames ]; then
+				fromFileNames=$fromFile
+			else
+				fromFileNames="${fromFileNames}, $fromFile"
+				#echo "fromFileNames:$fromFileNames"
+			fi
+		fi
+	done
+	plugin_command "netcat -zv $i 636 #From $fromFileNames"
+	plugin_command "netcat -zv $i 5989 #From $fromFileNames"	
+done
+
+
+
+}
+###################################################
 displayXML ()
 {
 
@@ -413,6 +484,12 @@ setVariables ()
 	
 	#This gives us the Dsserver1 DNS or IP address from the ipsmd.conf
 	ipsmd_conf_dsserver1=` grep -i DSServer1 /etc/opt/novell/iprint/conf/ipsmd.conf | tr -s ' ' | cut -d" " -f2`
+
+	#This gives us the Dsserver1 DNS or IP address from the ipsmd.conf
+	ipsmd_conf_psmhostaddress=` grep -i PSMHostAddress /etc/opt/novell/iprint/conf/ipsmd.conf | tr -s ' ' | cut -d" " -f2`
+
+
+	
 }
 ###################################################
 execCalls ()
