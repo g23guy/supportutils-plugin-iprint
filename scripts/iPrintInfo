@@ -7,11 +7,12 @@
 # Authors/Contributors:
 #              Jeremy Meldrum (jmeldrum@novell.com)
 #              Jason Record (jrecord@novell.com)
-# Modified:    2010 Nov 04
+# 		(Initial supportconfig plugin port)
+# Modified:    May 16 2011 
 #############################################################
 
 clear
-SVER=2.1.0
+SVER=2.1.1
 CONF_DIR="/etc/opt/novell/iprint-plugin"
 CONF_FILE="${CONF_DIR}/iprint-plugin.conf"
 OPT_AUTH_PERSISTENT=0

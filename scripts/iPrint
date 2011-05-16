@@ -7,10 +7,10 @@
 #              Jeremy Meldrum (jmeldrum@novell.com)
 #              Jason Record (jrecord@novell.com)
 #                (Initial supportconfig plugin port)
-# Modified:    2011 May 4 2011
+# Modified:    2011 May 16 2011
 #############################################################
 ${nam_conf_server}:nam.conf
-SVER=2.1.0
+SVER=2.1.1
 RCFILE="/usr/lib/supportconfig/resources/scplugin.rc"
 PGCONF="/etc/opt/novell/iprint-plugin/iprint-plugin.conf"
 LOG_LINES=200	#0 means include the entire file
