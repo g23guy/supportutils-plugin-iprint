@@ -7,9 +7,8 @@
 #              Jeremy Meldrum (jmeldrum@novell.com)
 #              Jason Record (jrecord@novell.com)
 #                (Initial supportconfig plugin port)
-# Modified:    2011 May 16 2011
+# Modified:    2011 May 19 2011
 #############################################################
-${nam_conf_server}:nam.conf
 SVER=2.1.1
 RCFILE="/usr/lib/supportconfig/resources/scplugin.rc"
 PGCONF="/etc/opt/novell/iprint-plugin/iprint-plugin.conf"
@@ -51,6 +50,7 @@ EDIR_LABEL="eDir and Certs"
 COMM_LABEL="Command"
 LOG_LABEL="Log File"
 XML_LABEL="XML File"
+FILE_LABEL="Configuration File"
 
 #Stores the server DNS or IP address variables
 iprint_ssl_URL=""
@@ -179,7 +179,13 @@ FileOutput ()
 		plugin_tag "Configuration File" "iPrint NSS Unload Script Does Not Exist"
         fi
 
-	pconf_files "/etc/nam.conf /etc/novell-release /etc/SuSE-release /etc/hosts /etc/passwd /etc/group /etc/openwbem/openwbem.conf /etc/apache2/httpd.conf /etc/apache2/vhosts.d/vhost-ssl.conf /etc/sysconfig/apache2 /etc/sysconfig/proxy /etc/permissions.d/iprint"
+	pconf_files "/etc/nam.conf /etc/novell-release /etc/SuSE-release /etc/hosts /etc/openwbem/openwbem.conf /etc/apache2/httpd.conf /etc/apache2/vhosts.d/vhost-ssl.conf /etc/sysconfig/apache2 /etc/sysconfig/proxy /etc/permissions.d/iprint"
+	plugin_tag "$FILE_LABEL" "cat /etc/passwd"
+	cat /etc/passwd | sort -d
+	echo; echo
+	plugin_tag "$FILE_LABEL" "cat /etc/group"
+	cat /etc/group | sort -d
+	echo; echo
 }
 
 ###################################################
