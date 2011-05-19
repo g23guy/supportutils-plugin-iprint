@@ -14,7 +14,7 @@ URL:          https://code.google.com/p/supportutils-plugin-iprint/
 License:      GPLv2
 Group:        Documentation/SuSE
 Autoreqprov:  on
-Version:      1.0
+Version:      1.1
 Release:      2
 Source:       %{name}-%{version}.tar.gz
 Summary:      Supportconfig Plugin for Novell iPrint
