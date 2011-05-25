@@ -390,7 +390,7 @@ do
 		dnsNameUrl=$(echo $j | cut -d: -f1)
 		fromFile=$(echo $j | cut -d: -f2)
 		if [ "$dnsNameUrl" == "$i" ]; then				
-			if [ -z $fromFileNames ]; then
+			if [ -z "$fromFileNames" ]; then
 				fromFileNames=$fromFile
 			else
 				fromFileNames="${fromFileNames}, $fromFile"
