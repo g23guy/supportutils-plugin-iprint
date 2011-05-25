@@ -195,7 +195,7 @@ ndsOutput ()
 	plugin_tag "Section #5" "eDirectory and Cert Information"
 	
 	if [ -L /var/opt/novell/iprint ]; then
-		clusterVolPath=$(ll /var/opt/novell/ | grep /media/nss | cut -d'>' -f2 | cut -d/ -f1-4 |  sed -e 's/^[ \t]*//')
+		clusterVolPath=$(ls -al /var/opt/novell/ | grep /media/nss | cut -d'>' -f2 | cut -d/ -f1-4 |  sed -e 's/^[ \t]*//')
 		plugin_tag "$EDIR_LABEL" "rights -f $clusterVolPath/etc/opt/novell/iprint show"
 		rights -f $clusterVolPath/etc/opt/novell/iprint show
 
