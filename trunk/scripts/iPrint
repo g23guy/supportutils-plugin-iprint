@@ -193,6 +193,16 @@ ndsOutput ()
 {
 
 	plugin_tag "Section #5" "eDirectory and Cert Information"
+	
+	if [ -L /var/opt/novell/iprint ]; then
+		clusterVolPath=$(ll /var/opt/novell/ | grep /media/nss | cut -d'>' -f2 | cut -d/ -f1-4 |  sed -e 's/^[ \t]*//')
+		plugin_tag "$EDIR_LABEL" "rights -f $clusterVolPath/etc/opt/novell/iprint show"
+		rights -f $clusterVolPath/etc/opt/novell/iprint show
+
+		plugin_tag "$EDIR_LABEL" "rights -f $clusterVolPath/var/opt/novell/iprint show"
+		rights -f $clusterVolPath/var/opt/novell/iprint show
+	fi
+
 	plugin_tag "$EDIR_LABEL" "ndsstat -r"
 	ndsstat -r; echo
 	
@@ -215,28 +225,28 @@ ndsOutput ()
 		plugin_tag "$EDIR_LABEL" "Run iPrintInfo for additional LDAP information"
 	fi
 
-	if [ -n "$EDIR_LDAP_FQN" ]; then
-		#Doing an ldapsearch and bind using SSCert.pem
-		for VAL_CONF in ${iprint_ssl_URL}:iprint_ssl.conf localhost:localhost  ${ipsmd_conf_dsserver1}:ipsmd.conf
-		do
-			SRV_URL=$(echo $VAL_CONF | cut -d: -f1)
-			SRV_CNF=$(echo $VAL_CONF | cut -d: -f2)
-			plugin_message "#==[ $EDIR_LABEL ]======================================#"
-			tmpSrvName=`ndsstat -h $SRV_URL 2>&1 | grep "Server Name" | cut -d. -f2 | cut -d= -f2` >/dev/null
-			if [ -z "$tmpSrvName" ]; then
-				plugin_message "# ndsstat failed using command: ndsstat -h $SRV_URL"
-			else
-				plugin_message "# (From $SRV_CNF) /opt/novell/eDirectory/bin/ldapsearch -h $SRV_URL -p 636 -D $EDIR_LDAP_FQN -W -e /etc/opt/novell/certs/SSCert.der \"cn= SSL CertificateDNS - $tmpSrvName\""
-				/opt/novell/eDirectory/bin/ldapsearch -h $SRV_URL -p 636 -D $EDIR_LDAP_FQN -w $EDIR_PASSWORD -e /etc/opt/novell/certs/SSCert.der "cn= SSL CertificateDNS - $tmpSrvName" | sed '/nDSPKICertificateChain:/,/objectClass:/d'
-			fi
-			plugin_message
-		done
-	else
-		plugin_message "#==[ Warning ]======================================#"
-		plugin_message "# Run iPrintInfo for secure LDAP connection test"
-		plugin_message
-	fi
-
+	#if [ -n "$EDIR_LDAP_FQN" ]; then
+	#	#Doing an ldapsearch and bind using SSCert.pem
+	#	for VAL_CONF in ${iprint_ssl_URL}:iprint_ssl.conf localhost:localhost  ${ipsmd_conf_dsserver1}:ipsmd.conf
+	#	do
+	#		SRV_URL=$(echo $VAL_CONF | cut -d: -f1)
+	#		SRV_CNF=$(echo $VAL_CONF | cut -d: -f2)
+	#		plugin_message "#==[ $EDIR_LABEL ]======================================#"
+	#		tmpSrvName=`ndsstat -h $SRV_URL 2>&1 | grep "Server Name" | cut -d. -f2 | cut -d= -f2` >/dev/null
+	#		if [ -z "$tmpSrvName" ]; then
+	#			plugin_message "# ndsstat failed using command: ndsstat -h $SRV_URL"
+	#		else
+	#			plugin_message "# (From $SRV_CNF) /opt/novell/eDirectory/bin/ldapsearch -h $SRV_URL -p 636 -D $EDIR_LDAP_FQN -W -e /etc/opt/novell/certs/SSCert.der \"cn= SSL CertificateDNS - $tmpSrvName\""
+	#			/opt/novell/eDirectory/bin/ldapsearch -h $SRV_URL -p 636 -D $EDIR_LDAP_FQN -w $EDIR_PASSWORD -e /etc/opt/novell/certs/SSCert.der "cn= SSL CertificateDNS - $tmpSrvName" | sed '/nDSPKICertificateChain:/,/objectClass:/d'
+	#		fi
+	#		plugin_message
+	#	done
+	#else
+	#	plugin_message "#==[ Warning ]======================================#"
+	#	plugin_message "# Run iPrintInfo for secure LDAP connection test"
+	#	plugin_message
+	#fi
+	UniqueNames "ldapsearch"
 	pathsToList="/etc/opt/novell/certs/ /etc/ssl/servercerts/"
 	for pathVar in $pathsToList
 	do
@@ -318,7 +328,7 @@ MiscCommands ()
 	plugin_command "id iprint"
 	plugin_command "netstat -atnp | egrep \"636|389\" | grep -i listen"
 	plugin_command "netstat -atnp | grep httpd | grep -i listen"	
-	netcatUniqueNames
+	UniqueNames "netcat"
 	plugin_command "rcSuSEfirewall2 status"
 	plugin_command "df -h"
 	plugin_command "free -k"
@@ -377,8 +387,9 @@ do
 done
 }
 ###################################################
-netcatUniqueNames ()
+UniqueNames ()
 {
+
 #This for loop will read in each dns name or ip address and put them in a list
 for i in $iprint_ssl_URL $ipsmd_conf_dsserver1 $ipsmd_conf_psmhostaddress $nam_conf_server
 do	
@@ -405,8 +416,28 @@ do
 			fi
 		fi
 	done
-	plugin_command "netcat -zv $i 636 #From $fromFileNames"
-	plugin_command "netcat -zv $i 5989 #From $fromFileNames"	
+	if [ $1 == "netcat" ];then
+		plugin_command "netcat -zv $i 636 #From $fromFileNames"
+		plugin_command "netcat -zv $i 5989 #From $fromFileNames"
+
+	elif [ $1 == "ldapsearch" ]; then
+		if [ -n "$EDIR_LDAP_FQN" ]; then
+			tmpSrvName=`ndsstat -h $dnsNameUrl 2>&1 | grep "Server Name" | cut -d. -f2 | cut -d= -f2` >/dev/null
+			if [ -z "$tmpSrvName" ]; then
+				plugin_message "# ndsstat failed using command: ndsstat -h $dnsNameUrl"
+			else
+				plugin_message "#==[ $EDIR_LABEL ]======================================#"
+				plugin_message "# (From $fromFileNames) /opt/novell/eDirectory/bin/ldapsearch -h $i -p 636 -D $EDIR_LDAP_FQN -W -e /etc/opt/novell/certs/SSCert.der \"cn= SSL CertificateDNS - $tmpSrvName\""
+				/opt/novell/eDirectory/bin/ldapsearch -h $i -p 636 -D $EDIR_LDAP_FQN -w $EDIR_PASSWORD -e /etc/opt/novell/certs/SSCert.der "cn= SSL CertificateDNS - $tmpSrvName" | sed '/nDSPKICertificateChain:/,/objectClass:/d'		
+				plugin_message
+			fi
+		
+		else
+			plugin_message "#==[ Warning ]======================================#"
+			plugin_message "# Run iPrintInfo -b for secure LDAP connection test"
+			plugin_message
+		fi
+	fi
 done
 
 
