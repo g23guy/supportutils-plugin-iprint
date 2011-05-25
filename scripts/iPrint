@@ -7,9 +7,9 @@
 #              Jeremy Meldrum (jmeldrum@novell.com)
 #              Jason Record (jrecord@novell.com)
 #                (Initial supportconfig plugin port)
-# Modified:    2011 May 19 2011
+# Modified:    2011 May 25 2011
 #############################################################
-SVER=2.1.1
+SVER=2.1.3
 RCFILE="/usr/lib/supportconfig/resources/scplugin.rc"
 PGCONF="/etc/opt/novell/iprint-plugin/iprint-plugin.conf"
 LOG_LINES=200	#0 means include the entire file
@@ -141,13 +141,13 @@ ListRightsStatic ()
 
 	
 	#NSS Rights listing
-	if [ -h "/var/opt/novell/iprint" ]; then
-		plugin_tag "$RIGHTS_LABEL" "rights show -f /var/opt/novell/log/iprint"
-		rights show -f /var/opt/novell/log/iprint; echo
+#	if [ -h "/var/opt/novell/iprint" ]; then
+#		plugin_tag "$RIGHTS_LABEL" "rights show -f /var/opt/novell/log/iprint"
+#		rights show -f /var/opt/novell/log/iprint; echo
 
-		plugin_tag "$RIGHTS_LABEL" "rights show -f /var/opt/novell/iprint"
-		rights show -f /var/opt/novell/iprint; echo
-	fi
+#		plugin_tag "$RIGHTS_LABEL" "rights show -f /var/opt/novell/iprint"
+#		rights show -f /var/opt/novell/iprint; echo
+#	fi
 
 }
 
@@ -201,6 +201,9 @@ ndsOutput ()
 
 		plugin_tag "$EDIR_LABEL" "rights -f $clusterVolPath/var/opt/novell/iprint show"
 		rights -f $clusterVolPath/var/opt/novell/iprint show
+
+		plugin_tag "$EDIR_LABEL" "rights -f $clusterVolPath/var/opt/novell/log/iprint show"
+		rights -f $clusterVolPath/var/opt/novell/log/iprint show
 	fi
 
 	plugin_tag "$EDIR_LABEL" "ndsstat -r"
@@ -225,27 +228,6 @@ ndsOutput ()
 		plugin_tag "$EDIR_LABEL" "Run iPrintInfo for additional LDAP information"
 	fi
 
-	#if [ -n "$EDIR_LDAP_FQN" ]; then
-	#	#Doing an ldapsearch and bind using SSCert.pem
-	#	for VAL_CONF in ${iprint_ssl_URL}:iprint_ssl.conf localhost:localhost  ${ipsmd_conf_dsserver1}:ipsmd.conf
-	#	do
-	#		SRV_URL=$(echo $VAL_CONF | cut -d: -f1)
-	#		SRV_CNF=$(echo $VAL_CONF | cut -d: -f2)
-	#		plugin_message "#==[ $EDIR_LABEL ]======================================#"
-	#		tmpSrvName=`ndsstat -h $SRV_URL 2>&1 | grep "Server Name" | cut -d. -f2 | cut -d= -f2` >/dev/null
-	#		if [ -z "$tmpSrvName" ]; then
-	#			plugin_message "# ndsstat failed using command: ndsstat -h $SRV_URL"
-	#		else
-	#			plugin_message "# (From $SRV_CNF) /opt/novell/eDirectory/bin/ldapsearch -h $SRV_URL -p 636 -D $EDIR_LDAP_FQN -W -e /etc/opt/novell/certs/SSCert.der \"cn= SSL CertificateDNS - $tmpSrvName\""
-	#			/opt/novell/eDirectory/bin/ldapsearch -h $SRV_URL -p 636 -D $EDIR_LDAP_FQN -w $EDIR_PASSWORD -e /etc/opt/novell/certs/SSCert.der "cn= SSL CertificateDNS - $tmpSrvName" | sed '/nDSPKICertificateChain:/,/objectClass:/d'
-	#		fi
-	#		plugin_message
-	#	done
-	#else
-	#	plugin_message "#==[ Warning ]======================================#"
-	#	plugin_message "# Run iPrintInfo for secure LDAP connection test"
-	#	plugin_message
-	#fi
 	UniqueNames "ldapsearch"
 	pathsToList="/etc/opt/novell/certs/ /etc/ssl/servercerts/"
 	for pathVar in $pathsToList
