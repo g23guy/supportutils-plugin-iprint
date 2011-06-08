@@ -42,6 +42,7 @@ declare -a grepArray
 errorFlag="1"
 tempVar=""
 managerName=""
+tmpSrvName=""
 
 #Labels
 RIGHTS_LABEL="Directory Listings"
@@ -225,10 +226,17 @@ ndsOutput ()
 		plugin_tag "$EDIR_LABEL" "ldapconfig get -p $nam_conf_server -a $EDIR_USERNAME"
 		ldapconfig get -p $nam_conf_server -a $EDIR_USERNAME -w $EDIR_PASSWORD; echo
 	else
-		plugin_tag "$EDIR_LABEL" "Run iPrintInfo for additional LDAP information"
+		plugin_tag "$EDIR_LABEL" "Run iPrintInfo -h for additional LDAP information"
 	fi
-
 	UniqueNames "ldapsearch"
+	
+	if [ -n "$EDIR_USERNAME" ]; then
+	plugin_tag "$EDIR_LABEL" "(From localhost) /opt/novell/eDirectory/bin/ldapsearch -h localhost -p 636 -D $EDIR_LDAP_FQN -W -e /etc/opt/novell/certs/SSCert.der \"cn=UNIX Workstation - $tmpSrvName\""
+	/opt/novell/eDirectory/bin/ldapsearch -h localhost -p 636 -D $EDIR_LDAP_FQN -w $EDIR_PASSWORD -e /etc/opt/novell/certs/SSCert.der "cn=UNIX Workstation - $tmpSrvName" | grep ^\# --invert-match | sed '/^$/d';echo
+	
+	fi			
+
+	
 	pathsToList="/etc/opt/novell/certs/ /etc/ssl/servercerts/"
 	for pathVar in $pathsToList
 	do
@@ -318,6 +326,24 @@ MiscCommands ()
 	plugin_command "getent passwd | grep wwwrun"
 	plugin_command "getent group | grep www"
 	plugin_command "ps -eo pcpu,pid,user,args | sort -k 1 -r | head -10 | grep -e iPrintInfo --invert-match"
+
+	if [ -h /var/opt/novell/iprint ]; then
+        if [ -n "$eName" ]; then
+                if [ $eName == "admin" ]; then
+			plugin_command "namuserlist -f $eName"
+                else
+                	plugin_command "namuserlist -f admin"
+			plugin_command "namuserlist -f $eName"
+                fi
+        else
+		 plugin_command "namuserlist -f admin"
+        fi
+
+	
+
+        plugin_command "namuserlist -f iprint"
+        plugin_command "namuserlist -f wwwrun"
+	fi
 	plugin_command "namuserlist -x $EDIR_SEARCH_BASE"
 	plugin_command "namgrouplist -x $EDIR_SEARCH_BASE"
 }
@@ -464,7 +490,7 @@ LogOutput ()
 	plugin_tag "$LOG_LABEL" "/var/opt/novell/iprint/$managerName.psm/ndpsmmon.log - Last $LOG_LINES2 Lines"	
 	tail -$LOG_LINES "/var/opt/novell/iprint/$managerName.psm/ndpsmmon.log"; echo
 	
-	if [ -e "/var/opt/novell/log/iprint_nss_relocate1.log" ]; then
+	if [ -e "/var/opt/novell/log/iprint_nss_relocate.log" ]; then
 		plog_files $LOG_LINES "/var/opt/novell/log/iprint_nss_relocate.log"	
 
 	else 	
