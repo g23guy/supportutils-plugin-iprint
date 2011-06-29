@@ -230,10 +230,23 @@ ndsOutput ()
 	fi
 	UniqueNames "ldapsearch"
 	
-	if [ -n "$EDIR_USERNAME" ]; then
-	plugin_tag "$EDIR_LABEL" "(From localhost) /opt/novell/eDirectory/bin/ldapsearch -h localhost -p 636 -D $EDIR_LDAP_FQN -W -e /etc/opt/novell/certs/SSCert.der \"cn=UNIX Workstation - $tmpSrvName\""
-	/opt/novell/eDirectory/bin/ldapsearch -h localhost -p 636 -D $EDIR_LDAP_FQN -w $EDIR_PASSWORD -e /etc/opt/novell/certs/SSCert.der "cn=UNIX Workstation - $tmpSrvName" | grep ^\# --invert-match | sed '/^$/d';echo
+	#This only executes if  iprint is on a NSS volume.
+	if [ -n "$EDIR_USERNAME" ] && [ -h /var/opt/novell/iprint ]; then	
+		plugin_tag "$EDIR_LABEL" "(From localhost) /opt/novell/eDirectory/bin/ldapsearch -h localhost -p 636 -D $EDIR_LDAP_FQN -W -e /etc/opt/novell/certs/SSCert.der \"cn=UNIX Workstation - $tmpSrvName\""
+		UNIX_Output=$(/opt/novell/eDirectory/bin/ldapsearch -h localhost -p 636 -D $EDIR_LDAP_FQN -w $EDIR_PASSWORD -e /etc/opt/novell/certs/SSCert.der "cn=UNIX Workstation - $tmpSrvName" | grep ^\# --invert-match | sed '/^$/d')
+		echo "$UNIX_Output"; echo	
+		
+		iprintgrp_context=$(echo "$UNIX_Output" | grep iprintgrp | cut -d" " -f2-)
+		plugin_tag "$EDIR_LABEL" "(From localhost) /opt/novell/eDirectory/bin/ldapsearch -h localhost -p 636 -D $EDIR_LDAP_FQN -W -e /etc/opt/novell/certs/SSCert.der -b "$iprintgrp_context""	
+		iprintgrp_Output=$(/opt/novell/eDirectory/bin/ldapsearch -h localhost -p 636 -D $EDIR_LDAP_FQN -w $EDIR_PASSWORD -e /etc/opt/novell/certs/SSCert.der -b "$iprintgrp_context" | grep ^\# --invert-match | sed '/^$/d')
+		echo "$iprintgrp_Output"; echo
+		
+		iprint_context=$(echo "$iprintgrp_Output" | grep 'member: cn=iprint,' | cut -d" " -f2-)
+		plugin_tag "$EDIR_LABEL" "(From localhost) /opt/novell/eDirectory/bin/ldapsearch -h localhost -p 636 -D $EDIR_LDAP_FQN -W -e /etc/opt/novell/certs/SSCert.der -b "$iprint_context""	
+		iprint_Output=$(/opt/novell/eDirectory/bin/ldapsearch -h localhost -p 636 -D $EDIR_LDAP_FQN -w $EDIR_PASSWORD -e /etc/opt/novell/certs/SSCert.der -b "$iprint_context" | grep ^\# --invert-match | sed '/^$/d')
+		echo "$iprint_Output"; echo	
 	
+		
 	fi			
 
 	
