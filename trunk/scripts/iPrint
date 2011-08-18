@@ -7,9 +7,9 @@
 #              Jeremy Meldrum (jmeldrum@novell.com)
 #              Jason Record (jrecord@novell.com)
 #                (Initial supportconfig plugin port)
-# Modified:    June 29 2011
+# Modified:    August 18 2011
 #############################################################
-SVER=2.1.4
+SVER=2.1.5
 RCFILE="/usr/lib/supportconfig/resources/scplugin.rc"
 PGCONF="/etc/opt/novell/iprint-plugin/iprint-plugin.conf"
 LOG_LINES=200	#0 means include the entire file
@@ -126,8 +126,8 @@ ListRightsStatic ()
 		plugin_tag "$RIGHTS_LABEL" "$pathVar"
 		ls -alh $pathVar; echo
 	done
-
-	managerName=` ls -al /etc/opt/novell/iprint/conf/ipsmd.conf | cut -d/ -f13 | sed 's/.ipsmd.conf//'`
+	managerName=`ls -al /etc/opt/novell/iprint/conf/ipsmd.conf | awk -F/ '{print $(NF-0)}' | sed 's/.ipsmd.conf//'` 
+	#managerName=` ls -al /etc/opt/novell/iprint/conf/ipsmd.conf | cut -d/ -f13 | sed 's/.ipsmd.conf//'`
 	plugin_tag "$RIGHTS_LABEL" "/var/opt/novell/iprint/$managerName.psm"
 	ls -al /var/opt/novell/iprint/"$managerName.psm"; echo
 	
