@@ -237,14 +237,32 @@ ndsOutput ()
 		echo "$UNIX_Output"; echo	
 		
 		iprintgrp_context=$(echo "$UNIX_Output" | grep iprintgrp | cut -d" " -f2-)
-		plugin_tag "$EDIR_LABEL" "(From localhost) /opt/novell/eDirectory/bin/ldapsearch -h localhost -p 636 -D $EDIR_LDAP_FQN -W -e /etc/opt/novell/certs/SSCert.der -b "$iprintgrp_context""	
-		iprintgrp_Output=$(/opt/novell/eDirectory/bin/ldapsearch -h localhost -p 636 -D $EDIR_LDAP_FQN -w $EDIR_PASSWORD -e /etc/opt/novell/certs/SSCert.der -b "$iprintgrp_context" | grep ^\# --invert-match | sed '/^$/d')
-		echo "$iprintgrp_Output"; echo
 		
-		iprint_context=$(echo "$iprintgrp_Output" | grep 'member: cn=iprint,' | cut -d" " -f2-)
-		plugin_tag "$EDIR_LABEL" "(From localhost) /opt/novell/eDirectory/bin/ldapsearch -h localhost -p 636 -D $EDIR_LDAP_FQN -W -e /etc/opt/novell/certs/SSCert.der -b "$iprint_context""	
-		iprint_Output=$(/opt/novell/eDirectory/bin/ldapsearch -h localhost -p 636 -D $EDIR_LDAP_FQN -w $EDIR_PASSWORD -e /etc/opt/novell/certs/SSCert.der -b "$iprint_context" | grep ^\# --invert-match | sed '/^$/d')
-		echo "$iprint_Output"; echo	
+		addArrayIndex=0
+		SAVEIFS=$IFS
+		IFS=$(echo -en "\n\b")
+		iprintgrpArrayLen=${#iprintgrp_context[@]}
+		echo "iprintgrpArrayLen: $iprintgrpArrayLen"
+		for (( i=0; i<${iprintgrpArrayLen}; i++ ));
+		do
+			plugin_tag "$EDIR_LABEL" "(From localhost) /opt/novell/eDirectory/bin/ldapsearch -h localhost -p 636 -D $EDIR_LDAP_FQN -W -e /etc/opt/novell/certs/SSCert.der -b "${iprintgrp_context[$i]}""
+			
+			
+			iprintgrp_Output_Array[${addArrayIndex}]=$(/opt/novell/eDirectory/bin/ldapsearch -h localhost -p 636 -D $EDIR_LDAP_FQN -w $EDIR_PASSWORD -e /etc/opt/novell/certs/SSCert.der -b "${iprintgrp_context[$i]}" | grep ^\# --invert-match | sed '/^$/d')
+			#echo "$iprintgrp_Output";
+			
+			#iprintgrp_Output_Array[${addArrayIndex}]="${myStandbyDNArray[$i]}"
+		        echo "The output of iprintgrp_Output_Array : ${iprintgrp_Output_Array[addArrayIndex]}"
+		        ((addArrayIndex++))	
+			echo
+		
+		done
+		IFS=$SAVEIFS
+		#iprint_context=$(echo "$iprintgrp_Output" | grep 'member: cn=iprint,' | cut -d" " -f2-)
+		#plugin_tag "$EDIR_LABEL" "(From localhost) /opt/novell/eDirectory/bin/ldapsearch -h localhost -p 636 -D $EDIR_LDAP_FQN -W -e /etc/opt/novell/certs/SSCert.der -b "$iprint_context""	
+		#iprint_Output=$(/opt/novell/eDirectory/bin/ldapsearch -h localhost -p 636 -D $EDIR_LDAP_FQN -w $EDIR_PASSWORD -e /etc/opt/novell/certs/SSCert.der -b "$iprint_context" | grep ^\# --invert-match | sed '/^$/d')
+		#echo "$iprint_Output"; echo	
+		
 	
 		
 	fi			
