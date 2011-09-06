@@ -247,7 +247,7 @@ ndsOutput ()
 		do
 			plugin_tag "$EDIR_LABEL" "(From localhost) /opt/novell/eDirectory/bin/ldapsearch -h localhost -p 636 -D $EDIR_LDAP_FQN -W -e /etc/opt/novell/certs/SSCert.der -b "${iprintgrp_context[$i]}""
 			
-			
+			echo "addArrayIndex: $addArrayIndex"
 			iprintgrp_Output_Array[${addArrayIndex}]=$(/opt/novell/eDirectory/bin/ldapsearch -h localhost -p 636 -D $EDIR_LDAP_FQN -w $EDIR_PASSWORD -e /etc/opt/novell/certs/SSCert.der -b "${iprintgrp_context[$i]}" | grep ^\# --invert-match | sed '/^$/d')
 			#echo "$iprintgrp_Output";
 			
