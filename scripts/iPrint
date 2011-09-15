@@ -7,9 +7,9 @@
 #              Jeremy Meldrum (jmeldrum@novell.com)
 #              Jason Record (jrecord@novell.com)
 #                (Initial supportconfig plugin port)
-# Modified:    August 18 2011
+# Modified:    September 15 2011
 #############################################################
-SVER=2.1.5
+SVER=2.1.6
 RCFILE="/usr/lib/supportconfig/resources/scplugin.rc"
 PGCONF="/etc/opt/novell/iprint-plugin/iprint-plugin.conf"
 LOG_LINES=200	#0 means include the entire file
@@ -228,6 +228,15 @@ ndsOutput ()
 	else
 		plugin_tag "$EDIR_LABEL" "Run iPrintInfo -h for additional LDAP information"
 	fi
+	#Identifies whether the uid of the user can be found
+	UID_NAME=$(echo $EDIR_USERNAME | cut -d. -f1)
+	
+	
+	plugin_tag "$EDIR_LABEL" "ldapsearch -x uid=$UID_NAME dn | grep dn: | sed s'/dn: //'"
+	echo '#  This command will display whether the uid for the admin account is searchable and has the correct rights'
+	ldapsearch -x uid=$UID_NAME dn | grep dn: | sed s'/dn: //'
+	echo
+	
 	UniqueNames "ldapsearch"
 	
 	#This only executes if  iprint is on a NSS volume.
@@ -236,37 +245,42 @@ ndsOutput ()
 		UNIX_Output=$(/opt/novell/eDirectory/bin/ldapsearch -h localhost -p 636 -D $EDIR_LDAP_FQN -w $EDIR_PASSWORD -e /etc/opt/novell/certs/SSCert.der "cn=UNIX Workstation - $tmpSrvName" | grep ^\# --invert-match | sed '/^$/d')
 		echo "$UNIX_Output"; echo	
 		
-		iprintgrp_context=$(echo "$UNIX_Output" | grep iprintgrp | cut -d" " -f2-)
-		
+		#Find the members of the iprintgrp group		
+		iprintgrp_context=($(echo "$UNIX_Output" | grep iprintgrp | cut -d" " -f2-))		
+		#echo "iprintgrp_context: $iprintgrp_context"		
 		addArrayIndex=0
 		SAVEIFS=$IFS
 		IFS=$(echo -en "\n\b")
 		iprintgrpArrayLen=${#iprintgrp_context[@]}
-		echo "iprintgrpArrayLen: $iprintgrpArrayLen"
+		
 		for (( i=0; i<${iprintgrpArrayLen}; i++ ));
 		do
-			plugin_tag "$EDIR_LABEL" "(From localhost) /opt/novell/eDirectory/bin/ldapsearch -h localhost -p 636 -D $EDIR_LDAP_FQN -W -e /etc/opt/novell/certs/SSCert.der -b "${iprintgrp_context[$i]}""
-			
-			echo "addArrayIndex: $addArrayIndex"
-			iprintgrp_Output_Array[${addArrayIndex}]=$(/opt/novell/eDirectory/bin/ldapsearch -h localhost -p 636 -D $EDIR_LDAP_FQN -w $EDIR_PASSWORD -e /etc/opt/novell/certs/SSCert.der -b "${iprintgrp_context[$i]}" | grep ^\# --invert-match | sed '/^$/d')
-			#echo "$iprintgrp_Output";
-			
-			#iprintgrp_Output_Array[${addArrayIndex}]="${myStandbyDNArray[$i]}"
-		        echo "The output of iprintgrp_Output_Array : ${iprintgrp_Output_Array[addArrayIndex]}"
-		        ((addArrayIndex++))	
+			plugin_tag "$EDIR_LABEL" "(From localhost) /opt/novell/eDirectory/bin/ldapsearch -h localhost -p 636 -D $EDIR_LDAP_FQN -W -e /etc/opt/novell/certs/SSCert.der -b "${iprintgrp_context[$i]}""			
+			iprintgrp_Output_Array[${addArrayIndex}]=$(/opt/novell/eDirectory/bin/ldapsearch -h localhost -p 636 -D $EDIR_LDAP_FQN -w $EDIR_PASSWORD -e /etc/opt/novell/certs/SSCert.der -b "${iprintgrp_context[$i]}" | grep ^\# --invert-match | sed '/^$/d')							
+		        echo "${iprintgrp_Output_Array[addArrayIndex]}"
+		        echo
+		        
+		        #Display contents of the iPrint user
+		        iprint_context=($(echo "${iprintgrp_Output_Array[addArrayIndex]}" | grep 'member: cn=iprint,' | cut -d" " -f2-))		        
+		        iprintArrayLen=${#iprint_context[@]}		        
+		        addArrayIndex2=0
+		        
+		        for (( j=0; j<${iprintArrayLen}; j++ ));
+			do
+				plugin_tag "$EDIR_LABEL" "(From localhost) /opt/novell/eDirectory/bin/ldapsearch -h localhost -p 636 -D $EDIR_LDAP_FQN -W -e /etc/opt/novell/certs/SSCert.der -b "${iprint_context[$j]}""
+				iprint_Output_Array[${addArrayIndex2}]=$(/opt/novell/eDirectory/bin/ldapsearch -h localhost -p 636 -D $EDIR_LDAP_FQN -w $EDIR_PASSWORD -e /etc/opt/novell/certs/SSCert.der -b "${iprint_context[$j]}" | grep ^\# --invert-match | sed '/^$/d')
+				echo "${iprint_Output_Array[addArrayIndex2]}"
+				#echo "addArrayIndex2: $addArrayIndex2"
+				((addArrayIndex2++)) #Allows the script to increment through the iprint user in that particular group
+				echo			
+			done		        
+		        ((addArrayIndex++)) #Allows the script to increment through the iprintgrp	
 			echo
 		
 		done
-		IFS=$SAVEIFS
-		#iprint_context=$(echo "$iprintgrp_Output" | grep 'member: cn=iprint,' | cut -d" " -f2-)
-		#plugin_tag "$EDIR_LABEL" "(From localhost) /opt/novell/eDirectory/bin/ldapsearch -h localhost -p 636 -D $EDIR_LDAP_FQN -W -e /etc/opt/novell/certs/SSCert.der -b "$iprint_context""	
-		#iprint_Output=$(/opt/novell/eDirectory/bin/ldapsearch -h localhost -p 636 -D $EDIR_LDAP_FQN -w $EDIR_PASSWORD -e /etc/opt/novell/certs/SSCert.der -b "$iprint_context" | grep ^\# --invert-match | sed '/^$/d')
-		#echo "$iprint_Output"; echo	
-		
-	
+		IFS=$SAVEIFS				
 		
 	fi			
-
 	
 	pathsToList="/etc/opt/novell/certs/ /etc/ssl/servercerts/"
 	for pathVar in $pathsToList
