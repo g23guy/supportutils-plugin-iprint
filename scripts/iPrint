@@ -7,9 +7,9 @@
 #              Jeremy Meldrum (jmeldrum@novell.com)
 #              Jason Record (jrecord@novell.com)
 #                (Initial supportconfig plugin port)
-# Modified:    September 15 2011
+# Modified:    September 16 2011
 #############################################################
-SVER=2.1.6
+SVER=2.1.7
 RCFILE="/usr/lib/supportconfig/resources/scplugin.rc"
 PGCONF="/etc/opt/novell/iprint-plugin/iprint-plugin.conf"
 LOG_LINES=200	#0 means include the entire file
@@ -228,13 +228,24 @@ ndsOutput ()
 	else
 		plugin_tag "$EDIR_LABEL" "Run iPrintInfo -h for additional LDAP information"
 	fi
+	
 	#Identifies whether the uid of the user can be found
-	UID_NAME=$(echo $EDIR_USERNAME | cut -d. -f1)
-	
-	
+	UID_NAME=$(echo $EDIR_USERNAME | cut -d. -f1)	
 	plugin_tag "$EDIR_LABEL" "ldapsearch -x uid=$UID_NAME dn | grep dn: | sed s'/dn: //'"
 	echo '#  This command will display whether the uid for the admin account is searchable and has the correct rights'
 	ldapsearch -x uid=$UID_NAME dn | grep dn: | sed s'/dn: //'
+	echo
+	
+	#Shows you what public assigned rights have been assigned to the root of the tree.	
+	treeName=$(grep AuthName  /etc/opt/novell/iprint/httpd/conf/iprint_ssl.conf | cut -d\" -f2 | sed -e 's/^[ \t]*//')
+	plugin_tag "$EDIR_LABEL" "(From localhost) /opt/novell/eDirectory/bin/ldapsearch -h localhost -p 636 -D $EDIR_LDAP_FQN -W -e /etc/opt/novell/certs/SSCert.der -b t=$treeName -s base ACL | grep Public"
+	
+	echo 'Numberic Key for Assigned Rights:'
+	echo '1#-Compare or Browse'
+	echo '2#-Read'
+	echo '3#-Compare and Read'
+	echo
+	/opt/novell/eDirectory/bin/ldapsearch -h localhost -p 636 -D $EDIR_LDAP_FQN -w $EDIR_PASSWORD -e /etc/opt/novell/certs/SSCert.der -b t=$treeName -s base ACL | grep Public
 	echo
 	
 	UniqueNames "ldapsearch"
