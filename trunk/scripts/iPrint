@@ -7,13 +7,14 @@
 #              Jeremy Meldrum (jmeldrum@novell.com)
 #              Jason Record (jrecord@novell.com)
 #                (Initial supportconfig plugin port)
-# Modified:    September 16 2011
+# Modified:    August 6 2012
 #############################################################
-SVER=2.1.7
+SVER=2.1.8
 RCFILE="/usr/lib/supportconfig/resources/scplugin.rc"
 PGCONF="/etc/opt/novell/iprint-plugin/iprint-plugin.conf"
 LOG_LINES=200	#0 means include the entire file
 LOG_LINES2=100
+LOG_LINES3=400
 
 [ -s $RCFILE ] && . $RCFILE || { echo "ERROR: Initializing resource file: $RCFILE"; exit 1; }
 [ -s $PGCONF ] && . $PGCONF || { echo "ERROR: Initializing configuration file: $PGCONF"; exit 2; }
@@ -43,6 +44,7 @@ errorFlag="1"
 tempVar=""
 managerName=""
 tmpSrvName=""
+oesVersion=""
 
 #Labels
 RIGHTS_LABEL="Directory Listings"
@@ -152,6 +154,7 @@ ListRightsStatic ()
 
 }
 
+
 ###################################################
 FileOutput ()
 {
@@ -178,15 +181,24 @@ FileOutput ()
                 pconf_files $NCS_MGR_NAME
         else
 		plugin_tag "Configuration File" "iPrint NSS Unload Script Does Not Exist"
-        fi
+        fi        
+	if [ $oesVersion == "11" ]; then
+		pconf_files "/etc/nam.conf /etc/novell-release /etc/SuSE-release /etc/hosts /etc/apache2/httpd.conf /etc/apache2/vhosts.d/vhost-ssl.conf /etc/sysconfig/apache2 /etc/sysconfig/proxy /etc/permissions.d/iprint /opt/novell/iprintmgmt/lib/Logger.properties"
+	else 
 
-	pconf_files "/etc/nam.conf /etc/novell-release /etc/SuSE-release /etc/hosts /etc/openwbem/openwbem.conf /etc/apache2/httpd.conf /etc/apache2/vhosts.d/vhost-ssl.conf /etc/sysconfig/apache2 /etc/sysconfig/proxy /etc/permissions.d/iprint"
+		pconf_files "/etc/nam.conf /etc/novell-release /etc/SuSE-release /etc/hosts /etc/openwbem/openwbem.conf /etc/apache2/httpd.conf /etc/apache2/vhosts.d/vhost-ssl.conf /etc/sysconfig/apache2 /etc/sysconfig/proxy /etc/permissions.d/iprint"
+	fi
 	plugin_tag "$FILE_LABEL" "cat /etc/passwd"
 	cat /etc/passwd | sort -d
 	echo; echo
 	plugin_tag "$FILE_LABEL" "cat /etc/group"
 	cat /etc/group | sort -d
 	echo; echo
+}
+###################################################
+checkOESVersion ()
+{
+	oesVersion=$(cat /etc/novell-release | grep VERSION | cut -d= -f2 |sed -e 's/^[ \t]*//')
 }
 
 ###################################################
@@ -300,26 +312,28 @@ ndsOutput ()
 		ls -al $pathVar; echo
 	done
 
-	if certtool -i --inder --infile /etc/opt/novell/certs/SSCert.der &>/dev/null; then
-		plugin_tag "$EDIR_LABEL" "certtool -i --inder --infile /etc/opt/novell/certs/SSCert.der"
-		certtool -i --inder --infile /etc/opt/novell/certs/SSCert.der | sed "/Subject:/,/modulus:/!d"; echo
-		
-	else
-		plugin_tag "$EDIR_LABEL" "certtool -i --inder --infile /etc/opt/novell/certs/SSCert.der"
-		certtool -i --inder --infile /etc/opt/novell/certs/SSCert.der; echo
-	fi
-		
-	CERTS="/etc/opt/novell/certs/SSCert.pem /etc/ssl/servercerts/servercert.pem"
-	for certFile in $CERTS
-	do
-		if certtool -i --infile $certFile &>/dev/null; then
-			plugin_tag "$EDIR_LABEL" "certtool -i --infile $certFile"
-			certtool -i --infile $certFile | sed "/Subject:/,/modulus:/!d"; echo
+	if [ $oesVersion != "11" ]; then
+		if certtool -i --inder --infile /etc/opt/novell/certs/SSCert.der &>/dev/null; then
+			plugin_tag "$EDIR_LABEL" "certtool -i --inder --infile /etc/opt/novell/certs/SSCert.der"
+			certtool -i --inder --infile /etc/opt/novell/certs/SSCert.der | sed "/Subject:/,/modulus:/!d"; echo
+			
 		else
-			plugin_tag "$EDIR_LABEL" "certtool -i --infile $certFile"
-			"certtool -i --infile $certFile"; echo
+			plugin_tag "$EDIR_LABEL" "certtool -i --inder --infile /etc/opt/novell/certs/SSCert.der"
+			certtool -i --inder --infile /etc/opt/novell/certs/SSCert.der; echo
 		fi
-	done
+			
+		CERTS="/etc/opt/novell/certs/SSCert.pem /etc/ssl/servercerts/servercert.pem"
+		for certFile in $CERTS
+		do
+			if certtool -i --infile $certFile &>/dev/null; then
+				plugin_tag "$EDIR_LABEL" "certtool -i --infile $certFile"
+				certtool -i --infile $certFile | sed "/Subject:/,/modulus:/!d"; echo
+			else
+				plugin_tag "$EDIR_LABEL" "certtool -i --infile $certFile"
+				"certtool -i --infile $certFile"; echo
+			fi
+		done
+	fi
 
 
 
@@ -332,20 +346,36 @@ ndsOutput ()
 MiscCommands ()
 {
 	plugin_tag "Section #6" "Miscellaneous Commands"
+	echo "EDIR_LDAP_FQN: $EDIR_LDAP_FQN"
+	
+	if [ $oesVersion != "11" ]; then
 	plugin_command 'rpm -qa --last | grep "openwbem\|iprint\|apache"'	
+	fi
 	
 	if [ -n "$EDIR_USERNAME" ]; then
-		UID_NAME=$(echo $EDIR_USERNAME | cut -d. -f1)	
-		plugin_tag "$COMM_LABEL" "iprintman psm -l -u $UID_NAME"	
-		iprintman psm -l -u $UID_NAME -P $EDIR_PASSWORD --accept-cert; echo
+		if [ $oesVersion == "11" ]; then				
+			plugin_tag "$COMM_LABEL" "iprintman psm -l -u $EDIR_LDAP_FQN"	
+			iprintman psm -l -u $EDIR_LDAP_FQN -P $EDIR_PASSWORD --accept-cert; echo
+		
+		
+		else
+			UID_NAME=$(echo $EDIR_USERNAME | cut -d. -f1)	
+			plugin_tag "$COMM_LABEL" "iprintman psm -l -u $UID_NAME"	
+			iprintman psm -l -u $UID_NAME -P $EDIR_PASSWORD --accept-cert; echo
+		fi
 	else
 		plugin_tag "$EDIR_LABEL" "Run iPrintInfo for additional iprintman information"
 	fi
 	
+	
 	plugin_command "ps -eaf | egrep 'iprint'"
-	plugin_command "ps -eaf | egrep 'owcimomd'"
+	if [ $oesVersion != "11" ]; then
+		plugin_command "ps -eaf | egrep 'owcimomd'"
+	fi
 	plugin_command "ps -eaf | egrep 'apache2'"
-	plugin_command "/etc/init.d/owcimomd status"
+	if [ $oesVersion != "11" ]; then
+		plugin_command "/etc/init.d/owcimomd status"
+	fi
 	plugin_command "chkconfig -l cups"
 	plugin_command "chkconfig -l novell-ipsmd"
 	plugin_command "/etc/init.d/cups status"
@@ -545,6 +575,16 @@ LogOutput ()
 	
 	plugin_tag "$LOG_LABEL" "/var/opt/novell/iprint/$managerName.psm/ndpsmmon.log - Last $LOG_LINES2 Lines"	
 	tail -$LOG_LINES "/var/opt/novell/iprint/$managerName.psm/ndpsmmon.log"; echo
+	if [ $oesVersion == "11" ]; then
+		
+		if [ -e "/var/opt/novell/log/iprintmgmt/iprintman0.log" ]; then
+			plugin_tag "$LOG_LABEL" "/var/opt/novell/log/iprintmgmt/iprintman[X].log - Last $LOG_LINES3 Lines"	
+			tail -n $LOG_LINES3 /var/opt/novell/log/iprintmgmt/iprintman*.log; echo
+		
+		else
+			plugin_tag "$LOG_LABEL" "/var/opt/novell/log/iprintmgmt/iprintman0.log - File Not Found"	
+		fi
+	fi
 	
 	if [ -e "/var/opt/novell/log/iprint_nss_relocate.log" ]; then
 		plog_files $LOG_LINES "/var/opt/novell/log/iprint_nss_relocate.log"	
@@ -596,6 +636,7 @@ setVariables ()
 execCalls ()
 {
 	#Executes each of the functions
+	checkOESVersion
 	checkPersistentCredentials
 	QueryRPMs
 	PackageValidation
