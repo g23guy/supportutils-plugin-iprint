@@ -83,7 +83,10 @@ commit: build
 	@echo Committing changes to OBS Novell:NTS/$(OBSPACKAGE)
 	@echo ==================================================================
 	osc up Novell:NTS/$(OBSPACKAGE)
-	osc del Novell:NTS/$(OBSPACKAGE)/*
+	@echo Testing123
+	#osc del Novell:NTS/$(OBSPACKAGE)/*
+	@echo Testing
+	@echo osc ci -m "Removing old files before committing: $(OBSPACKAGE)-$(VERSION)-$(RELEASE)" Novell:NTS/$(OBSPACKAGE)
 	osc ci -m "Removing old files before committing: $(OBSPACKAGE)-$(VERSION)-$(RELEASE)" Novell:NTS/$(OBSPACKAGE)
 	@rm -f Novell:NTS/$(OBSPACKAGE)/*
 	cp specs/$(OBSPACKAGE).spec Novell:NTS/$(OBSPACKAGE)
