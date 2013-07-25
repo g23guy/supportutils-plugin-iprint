@@ -7,9 +7,9 @@
 #              Jeremy Meldrum (jmeldrum@novell.com)
 #              Jason Record (jrecord@novell.com)
 #                (Initial supportconfig plugin port)
-# Modified:    August 6 2012
+# Modified:    July 24 2013
 #############################################################
-SVER=2.1.8
+SVER=2.1.9
 RCFILE="/usr/lib/supportconfig/resources/scplugin.rc"
 PGCONF="/etc/opt/novell/iprint-plugin/iprint-plugin.conf"
 LOG_LINES=200	#0 means include the entire file
@@ -354,14 +354,16 @@ MiscCommands ()
 	
 	if [ -n "$EDIR_USERNAME" ]; then
 		if [ $oesVersion == "11" ]; then				
-			plugin_tag "$COMM_LABEL" "iprintman psm -l -u $EDIR_LDAP_FQN"	
-			iprintman psm -l -u $EDIR_LDAP_FQN -P $EDIR_PASSWORD --accept-cert; echo
-		
-		
+			plugin_tag "$COMM_LABEL" "iprintman psm -l -u $EDIR_LDAP_FQN"
+			export IPRINTMAN_PASSWORD=$EDIR_PASSWORD
+			iprintman psm -l -u $EDIR_LDAP_FQN --accept-cert; echo
+			unset IPRINTMAN_PASSWORD
 		else
 			UID_NAME=$(echo $EDIR_USERNAME | cut -d. -f1)	
 			plugin_tag "$COMM_LABEL" "iprintman psm -l -u $UID_NAME"	
-			iprintman psm -l -u $UID_NAME -P $EDIR_PASSWORD --accept-cert; echo
+			export IPRINTMAN_PASSWORD=$EDIR_PASSWORD
+			iprintman psm -l -u $UID_NAME --accept-cert; echo
+			unset IPRINTMAN_PASSWORD
 		fi
 	else
 		plugin_tag "$EDIR_LABEL" "Run iPrintInfo for additional iprintman information"

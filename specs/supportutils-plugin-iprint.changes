@@ -1,5 +1,11 @@
 -------------------------------------------------------------------
-Thu Nov  4 14:03:36 MDT 2010 - jrecord@novell.com
+Thu Jul 25 15:26:46 MDT 2013 - jrecord@suse.com
+
+-fixed iPrint sending password in clear text (bnc#830317)
+iPrint: 2.1.9
+
+-------------------------------------------------------------------
+Thu Nov  4 14:03:36 MDT 2010 - jrecord@suse.com
 
 -added iPrintInfo man page
 -added requires supportconfig-plugin-tag
