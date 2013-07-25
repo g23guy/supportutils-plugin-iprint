@@ -15,7 +15,7 @@ License:      GPLv2
 Group:        Documentation/SuSE
 Autoreqprov:  on
 Version:      1.1
-Release:      7
+Release:      8
 Source:       %{name}-%{version}.tar.gz
 Summary:      Supportconfig Plugin for Novell iPrint
 BuildRoot:    %{_tmppath}/%{name}-%{version}-build
