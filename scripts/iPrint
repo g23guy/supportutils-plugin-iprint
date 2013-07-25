@@ -7,7 +7,7 @@
 #              Jeremy Meldrum (jmeldrum@novell.com)
 #              Jason Record (jrecord@novell.com)
 #                (Initial supportconfig plugin port)
-# Modified:    July 24 2013
+# Modified:    2013 July 25
 #############################################################
 SVER=2.1.9
 RCFILE="/usr/lib/supportconfig/resources/scplugin.rc"
