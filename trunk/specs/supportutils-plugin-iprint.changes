@@ -1,8 +1,10 @@
 -------------------------------------------------------------------
-Thu Jul 25 15:26:46 MDT 2013 - jrecord@suse.com
+Thu Jul 25 16:27:46 MDT 2013 - jrecord@suse.com
 
+-corrected script versions
 -fixed iPrint sending password in clear text (bnc#830317)
 iPrint: 2.1.9
+iPrintInfo: 2.1.9
 
 -------------------------------------------------------------------
 Thu Nov  4 14:03:36 MDT 2010 - jrecord@suse.com
