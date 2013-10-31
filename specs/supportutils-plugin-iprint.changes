@@ -1,4 +1,12 @@
 -------------------------------------------------------------------
+Thu Oct 31 08:35:13 MDT 2013 - jrecord@suse.com
+
+-added package processing
+-added certificate processing
+iPrint: 3.0.0
+iPrintInfo: 3.0.0
+
+-------------------------------------------------------------------
 Thu Jul 25 16:27:46 MDT 2013 - jrecord@suse.com
 
 -corrected script versions
