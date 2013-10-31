@@ -1,5 +1,5 @@
 #
-# spec file for package supportutils-plugin-iprint (Version 1.0-1)
+# spec file for package supportutils-plugin-iprint (Version 1.1)
 #
 # Copyright (C) 2010 Novell, Inc.
 # This file and all modifications and additions to the pristine
@@ -15,7 +15,7 @@ License:      GPLv2
 Group:        Documentation/SuSE
 Autoreqprov:  on
 Version:      1.1
-Release:      8
+Release:      9
 Source:       %{name}-%{version}.tar.gz
 Summary:      Supportconfig Plugin for Novell iPrint
 BuildRoot:    %{_tmppath}/%{name}-%{version}-build

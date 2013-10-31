@@ -6,10 +6,11 @@
 # Authors/Contributors:
 #              Jeremy Meldrum (jmeldrum@novell.com)
 #              Jason Record (jrecord@novell.com)
+#	           Pritam Pal Singh (spritampal@novell.vom 	
 #                (Initial supportconfig plugin port)
-# Modified:    2013 July 25
+# Modified:    2013 October 29
 #############################################################
-SVER=2.1.9
+SVER=3.0.0
 RCFILE="/usr/lib/supportconfig/resources/scplugin.rc"
 PGCONF="/etc/opt/novell/iprint-plugin/iprint-plugin.conf"
 LOG_LINES=200	#0 means include the entire file
@@ -45,7 +46,7 @@ tempVar=""
 managerName=""
 tmpSrvName=""
 oesVersion=""
-
+applianceVersion=""
 #Labels
 RIGHTS_LABEL="Directory Listings"
 RPM_LABEL="RPM Check"
@@ -107,7 +108,12 @@ ListRights ()
 ListRightsStatic ()
 {
 	plugin_tag "Section #3" "Static Directories"
-	pathsToList="/var/opt/novell/iprint/ /etc/opt/novell/iprint/conf/ /var/opt/novell/run/iprint/ /opt/novell/iprint/bin/ /etc/opt/novell/iprint/httpd/conf/ "
+	pathsToList="/var/opt/novell/iprint/ /etc/opt/novell/iprint/conf/ /var/opt/novell/run/iprint/ /opt/novell/iprint/bin/ /etc/opt/novell/iprint/httpd/conf/"
+	
+	if [ ! -z $applianceVersion ];then
+		pathsToList="$pathsToList /etc/opt/novell/iprintmobile/ /var/opt/novell/iprintmobile/ /var/opt/novell/iprintmobile/jobs/ /vastorage/iprint/ /etc/avahi/ /etc/avahi/services/"
+	fi
+	
 	for pathVar in $pathsToList
 	do
 		plugin_tag "$RIGHTS_LABEL" "$pathVar"
@@ -122,7 +128,11 @@ ListRightsStatic ()
 		ls -Rl $pathVar; echo
 	done
 
-	pathsToList="/var/opt/novell/log/iprint/ /var/opt/novell/iprint/resdir/ "	
+	pathsToList="/var/opt/novell/log/iprint/ /var/opt/novell/iprint/resdir/"
+	if [ ! -z $applianceVersion ]; then
+		pathsToList="$pathsToList /var/opt/novell/log/iprintmobile/"	
+	fi
+	
 	for pathVar in $pathsToList
 	do
 		plugin_tag "$RIGHTS_LABEL" "$pathVar"
@@ -133,7 +143,7 @@ ListRightsStatic ()
 	plugin_tag "$RIGHTS_LABEL" "/var/opt/novell/iprint/$managerName.psm"
 	ls -al /var/opt/novell/iprint/"$managerName.psm"; echo
 	
-	pathsToList="driver_mac-os-x_noarch_en driver_windows-95_x86-32_en driver_windows-nt-4_x86-32_en driver_windows-nt-5.1_x86-32_en driver_windows-nt-5_x86-32_en driver_windows-nt-6_x86-32_en driver_windows-nt-6_x86-64_en"
+	pathsToList="driver_linux-2.4_x86-32_en driver_mac-os-x_noarch_en driver_windows-95_x86-32_en driver_windows-nt-4_x86-32_en driver_windows-nt-5.1_x86-32_en driver_windows-nt-5_x86-32_en driver_windows-nt-6_x86-32_en driver_windows-nt-6_x86-64_en driver_windows-nt-6.1_x86-32_en driver_windows-nt-6.1_x86-64_en driver_windows-nt-6.2_x86-32_en driver_windows-nt-6.2_x86-64_en"
 	for pathVar in $pathsToList
 	do
 		if [ -d /var/opt/novell/iprint/resdir/${pathVar} ]; then
@@ -188,6 +198,11 @@ FileOutput ()
 
 		pconf_files "/etc/nam.conf /etc/novell-release /etc/SuSE-release /etc/hosts /etc/openwbem/openwbem.conf /etc/apache2/httpd.conf /etc/apache2/vhosts.d/vhost-ssl.conf /etc/sysconfig/apache2 /etc/sysconfig/proxy /etc/permissions.d/iprint"
 	fi
+
+	if [ ! -z $applianceVersion ]; then
+		pconf_files "/etc/Novell-VA-release /etc/opt/novell/iprintmobile/conf/iprintmobile.conf /etc/cups/printers.conf /etc/opt/novell/iprintmobile/conf/mime.types /etc/opt/novell/iprintmobile/conf/iprint_mobile_apache.conf /etc/opt/novell/iprintmobile/conf/backupList /etc/opt/novell/iprintmobile/conf/additionalBackupList /etc/opt/novell/iprintmobile/conf/restore.properties /var/opt/novell/iprintmobile/audit.csv /etc/avahi/avahi-daemon.conf /etc/avahi/hosts /etc/default/jetty"
+	fi
+
 	plugin_tag "$FILE_LABEL" "cat /etc/passwd"
 	cat /etc/passwd | sort -d
 	echo; echo
@@ -199,6 +214,13 @@ FileOutput ()
 checkOESVersion ()
 {
 	oesVersion=$(cat /etc/novell-release | grep VERSION | cut -d= -f2 |sed -e 's/^[ \t]*//')
+}
+
+checkApplianceVersion()
+{
+    if [ -f /etc/Novell-VA-release ]; then
+		applianceVersion=$(cat /etc/Novell-VA-release | grep version  | cut -d= -f2 |sed -e 's/^[ \t]*//')	
+	fi
 }
 
 ###################################################
@@ -306,6 +328,10 @@ ndsOutput ()
 	fi			
 	
 	pathsToList="/etc/opt/novell/certs/ /etc/ssl/servercerts/"
+	if [ ! -z $applianceVersion ];then
+		pathsToList="$pathsToList /vastorage/conf/certs"
+	fi
+	
 	for pathVar in $pathsToList
 	do
 		plugin_tag "$EDIR_LABEL" "ls -al $pathVar"
@@ -323,6 +349,10 @@ ndsOutput ()
 		fi
 			
 		CERTS="/etc/opt/novell/certs/SSCert.pem /etc/ssl/servercerts/servercert.pem"
+		
+		if [ ! -z $applianceVersion ]; then
+			CERTS="$CERTS /vastorage/conf/certs/vaserver.crt"
+		fi
 		for certFile in $CERTS
 		do
 			if certtool -i --infile $certFile &>/dev/null; then
@@ -383,6 +413,17 @@ MiscCommands ()
 	plugin_command "/etc/init.d/cups status"
 	plugin_command "/etc/init.d/novell-ipsmd status"
 	plugin_command "/etc/init.d/apache2 status"
+	
+	if [ ! -z $applianceVersion ]; then
+		plugin_command "/usr/sbin/rcnovell-jetty check"
+		plugin_command "rcnovell-iprint-mobile status"
+		plugin_command "rcavahi-daemon status"
+		plugin_command "ps -aef | grep -i Jetty"
+		plugin_command "ps -aef | grep -i MySql"
+		plugin_command "ps -aef | grep libreoffice"
+		plugin_command "ps -aef | grep avahi"
+	fi		
+	
 	plugin_command "uname -a"
 	plugin_command "uptime"
 	pingDNSNames
@@ -553,7 +594,11 @@ displayXML ()
 	
 	plugin_tag "$XML_LABEL" "/var/opt/novell/iprint/$managerName.psm/padbtxt.xml"
 	cat "/var/opt/novell/iprint/$managerName.psm/padbtxt.xml"; echo
-
+	
+	if [ ! -z $applianceVersion ]; then
+		plugin_tag "$XML_LABEL" "/var/opt/novell/iprintmobile/iprintmobiledb.xml"
+		cat "/var/opt/novell/iprintmobile/iprintmobiledb.xml"; echo
+	fi	
 }
 
 
@@ -569,6 +614,10 @@ LogOutput ()
 	
 	
 	logFiles="/var/opt/novell/log/iprint/idsd.log /var/opt/novell/log/iprint/ipsmd.log /var/opt/novell/log/iprint/ipsmprov.log /var/log/messages"
+	
+	if [ ! -z $applianceVersion ];then
+		logFiles="$logFiles /var/opt/novell/log/iprintmobile/iprintmobile0.log  /var/opt/novell/log/iprintmobile/iprintmobile_config.log /var/opt/novell/log/iprintmobile_local/config_appliance.log /var/opt/novell/log/iprintmobile/config_appliance.log /var/opt/novell/log/iprint_relocate.err /var/opt/novell/log/iprintmobile/backup.log /var/opt/novell/log/iprintmobile_local/restore.log /var/opt/novell/log/iprintmobile/restore.log /opt/novell/filr/apache-tomcat/webapps/ssf/WEB-INF/logs/ssf.log /var/opt/novell/jetty8/logs/jetty.stderrout.out"
+	fi
 	plog_files $LOG_LINES $logFiles
 	
 	plog_files $LOG_LINES "/var/log/apache2/error_log"
@@ -614,6 +663,11 @@ QueryRPMs ()
 {
 	#Enters all of the installed iprint rpms into an array for use in another function.
 	rpmArray=`rpm -qa | grep iprint | sort -d`	
+	
+	if [ ! -z $applianceVersion ]; then
+		#Add Libre office rpms
+		rpmArray+=`rpm -qa | grep libre | sort -d`
+	fi
 }
 ###################################################
 setVariables ()
@@ -639,6 +693,7 @@ execCalls ()
 {
 	#Executes each of the functions
 	checkOESVersion
+	checkApplianceVersion
 	checkPersistentCredentials
 	QueryRPMs
 	PackageValidation
@@ -656,4 +711,5 @@ execCalls ()
 
 	
 execCalls
+
 

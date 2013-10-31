@@ -7,12 +7,13 @@
 # Authors/Contributors:
 #              Jeremy Meldrum (jmeldrum@novell.com)
 #              Jason Record (jrecord@novell.com)
+#              Pritam Pal Singh (spritampal@novell.vom
 # 		(Initial supportconfig plugin port)
-# Modified:    2013 July 25
+# Modified:    2013 October 29
 #############################################################
 
 clear
-SVER=2.1.9
+SVER=3.0.0
 CONF_DIR="/etc/opt/novell/iprint-plugin"
 CONF_FILE="${CONF_DIR}/iprint-plugin.conf"
 OPT_AUTH_PERSISTENT=0
@@ -58,8 +59,9 @@ getCredentials ()
 			echo "ERROR: Empty LDAP search base"
 		fi
 	done
-
-	printf "%-40s " "FQN in dot notation (ie admin.novell):"
+        
+	SearchBase=`echo ${EDIR_SEARCH_BASE} | cut -f2 -d=`
+	printf "%-40s " "FQN in dot notation (ie admin.$SearchBase):"
 	read EDIR_USERNAME
 	printf "%-40s " "Enter the $EDIR_USERNAME Password:"
 	read -s EDIR_PASSWORD
